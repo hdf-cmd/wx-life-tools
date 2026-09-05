@@ -21,17 +21,17 @@
     "pages/toolbox/unwatermark/index"
   ],
   "window": {
-    "backgroundColor": "#F4F6F9",
-    "backgroundTextStyle": "light",
-    "navigationBarBackgroundColor": "#3E86E0",
+    "backgroundColor": "@bgColor",
+    "backgroundTextStyle": "@bgTxtStyle",
+    "navigationBarBackgroundColor": "@navBgColor",
     "navigationBarTitleText": "生活小工具",
-    "navigationBarTextStyle": "white"
+    "navigationBarTextStyle": "@navTxtStyle"
   },
   "tabBar": {
-    "color": "#999999",
-    "selectedColor": "#3E86E0",
-    "backgroundColor": "#ffffff",
-    "borderStyle": "black",
+    "color": "@tabFontColor",
+    "selectedColor": "@tabSelectedColor",
+    "backgroundColor": "@tabBgColor",
+    "borderStyle": "@tabBorderStyle",
     "list": [
       {
         "pagePath": "pages/index/index",
@@ -61,6 +61,8 @@
   },
   "sitemapLocation": "sitemap.json",
   "style": "v2",
+  "darkmode": true,
+  "themeLocation": "theme.json",
   "requiredPrivateInfos": [
     "getFuzzyLocation"
   ],

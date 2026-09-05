@@ -85,13 +85,17 @@ async function addBill(data, openid) {
 }
 
 /**
- * 获取账单列表
+ * 获取账单列表（分页）
  * @param {Object} data
  * @param {string} data.month - 月份 YYYY-MM
+ * @param {number} data.page - 页码，从 1 开始，默认 1
+ * @returns {code:0, data:{list, page, hasMore}} 单页 50 条，hasMore 供前端判断是否继续加载
  */
 async function listBills(data, openid) {
   try {
     const { month } = data
+    const page = Math.max(parseInt(data.page, 10) || 1, 1)
+    const limit = 50
 
     if (!month) {
       return { code: -1, msg: '请指定月份' }
@@ -107,12 +111,17 @@ async function listBills(data, openid) {
         date: _.gte(startOfMonth).and(_.lt(endOfMonth))
       })
       .orderBy('date', 'desc')
-      .limit(100)
+      .skip((page - 1) * limit)
+      .limit(limit)
       .get()
 
     return {
       code: 0,
-      data: result.data
+      data: {
+        list: result.data,
+        page: page,
+        hasMore: result.data.length === limit
+      }
     }
   } catch (err) {
     console.error('[listBills] 错误:', err)

@@ -180,3 +180,14 @@
   font-weight: 300;
   line-height: 1;
 }
+
+/* ===== 分页状态 ===== */
+.list-footer {
+  text-align: center;
+  padding: var(--spacing-md) 0 var(--spacing-xl);
+}
+
+.list-footer-text {
+  font-size: var(--font-xs);
+  color: var(--color-text-placeholder);
+}

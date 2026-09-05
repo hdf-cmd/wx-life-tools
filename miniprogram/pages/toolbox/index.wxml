@@ -24,3 +24,13 @@
     </view>
   </view>
 </view>
+
+  <!-- 意见反馈（微信原生反馈通道） -->
+  <view class="feedback-wrap">
+    <button class="feedback-btn" open-type="feedback" hover-class="feedback-hover">
+      <text class="feedback-icon">💬</text>
+      <text class="feedback-text">意见反馈</text>
+    </button>
+    <text class="feedback-tip">有问题或建议？点击告诉我们</text>
+  </view>
+</view>

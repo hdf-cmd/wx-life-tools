@@ -50,6 +50,7 @@
         wx:for="{{item.bills}}"
         wx:for-item="bill"
         wx:key="_id"
+        bindtap="onBillTap"
         bindlongpress="onLongPressDelete"
         data-id="{{bill._id}}"
       >
@@ -64,6 +65,13 @@
           {{bill.type === 'income' ? '+' : '-'}}{{bill.amount}}
         </text>
       </view>
+    </view>
+
+    <!-- 分页状态 -->
+    <view class="list-footer" wx:if="{{!loading}}">
+      <text wx:if="{{loadingMore}}" class="list-footer-text">加载中...</text>
+      <text wx:elif="{{hasMore}}" class="list-footer-text">上拉加载更多</text>
+      <text wx:else class="list-footer-text">— 本月账单已全部加载 —</text>
     </view>
   </view>
 

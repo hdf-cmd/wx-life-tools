@@ -19,7 +19,9 @@ Page({
     totalExpense: '0.00',
     balance: '0.00',
     groupedBills: [],    // 按日分组的账单列表
-    loading: false
+    loading: false,
+    hasMore: false,      // 分页：是否还有下一页
+    loadingMore: false   // 分页：触底加载中
   },
 
   onLoad: function () {
@@ -77,36 +79,60 @@ Page({
   },
 
   /**
-   * 加载账单列表
+   * 加载账单列表（分页）
+   * @param {boolean} append - false=重新加载（切月/首次），true=触底追加下一页
    */
-  loadBills: function () {
+  loadBills: function (append) {
     const that = this
     const { monthStr } = this.data
 
-    this.setData({ loading: true })
+    if (append) {
+      if (this.data.loadingMore || !this.data.hasMore) return
+      this.setData({ loadingMore: true })
+    } else {
+      this._bills = []          // 累积的原始账单（分页拼接）
+      this.setData({ loading: true, hasMore: false })
+    }
+
+    const page = append ? this._page + 1 : 1
+    this._page = page
 
     wx.cloud.callFunction({
       followSystem: true,
       name: 'bookkeeping',
       data: {
         action: 'list',
-        month: monthStr
+        month: monthStr,
+        page: page
       },
       success: function (res) {
         if (res.result.code === 0) {
-          const bills = res.result.data || []
-          that.processBills(bills)
+          const result = res.result.data || {}
+          const list = result.list || []
+          // 累积拼接后统一处理（汇总要算全量，不能只算当前页）
+          that._bills = (that._bills || []).concat(list)
+          that.processBills(that._bills)
+          that.setData({ hasMore: !!result.hasMore })
         } else {
           util.showToast(res.result.msg || '加载失败')
         }
-        that.setData({ loading: false })
+        that.setData({ loading: false, loadingMore: false })
       },
       fail: function (err) {
         console.error('[loadBills] 调用失败:', err)
         util.showToast('网络错误，请重试')
-        that.setData({ loading: false })
+        that.setData({ loading: false, loadingMore: false })
       }
     })
+  },
+
+  /**
+   * 触底加载下一页
+   */
+  onReachBottom: function () {
+    if (this.data.hasMore && !this.data.loadingMore) {
+      this.loadBills(true)
+    }
   },
 
   /**
@@ -199,6 +225,16 @@ Page({
     }
 
     return `${parts[1]}月${day}日`
+  },
+
+  /**
+   * 点击账单 → 编辑（长按仍是删除）
+   */
+  onBillTap: function (e) {
+    const id = e.currentTarget.dataset.id
+    wx.navigateTo({
+      url: '/pages/bookkeeping/add?id=' + id
+    })
   },
 
   /**
