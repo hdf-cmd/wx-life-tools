@@ -21,7 +21,12 @@ Page({
     groupedBills: [],    // 按日分组的账单列表
     loading: false,
     hasMore: false,      // 分页：是否还有下一页
-    loadingMore: false   // 分页：触底加载中
+    loadingMore: false,  // 分页：触底加载中
+    budget: 0,           // 本月预算（0=未设置）
+    budgetPercent: 0,
+    budgetState: 'safe', // safe / warn / over
+    budgetStateText: '',
+    budgetRemainText: ''
   },
 
   onLoad: function () {
@@ -37,6 +42,7 @@ Page({
   onShow: function () {
     // 每次显示页面时刷新数据（从 add 页面返回时）
     this.loadBills()
+    this.loadBudget()
   },
 
   /**
@@ -61,6 +67,7 @@ Page({
     this.setData({ currentYear, currentMonth })
     this.updateMonthStr()
     this.loadBills()
+    this.loadBudget()
   },
 
   /**
@@ -76,6 +83,7 @@ Page({
     this.setData({ currentYear, currentMonth })
     this.updateMonthStr()
     this.loadBills()
+    this.loadBudget()
   },
 
   /**
@@ -192,6 +200,108 @@ Page({
       totalExpense: (totalExpense / 100).toFixed(2),
       balance: ((totalIncome - totalExpense) / 100).toFixed(2),
       groupedBills: groupedBills
+    })
+
+    // 支出汇总变了，预算进度条跟随刷新
+    this.refreshBudgetBar()
+  },
+
+  /**
+   * 加载本月预算
+   */
+  loadBudget: function () {
+    const that = this
+    const { monthStr } = this.data
+
+    wx.cloud.callFunction({
+      followSystem: true,
+      name: 'bookkeeping',
+      data: { action: 'getBudget', month: monthStr },
+      success: function (res) {
+        if (res.result.code === 0) {
+          that.setData({ budget: (res.result.data && res.result.data.amount) || 0 })
+          that.refreshBudgetBar()
+        }
+      },
+      fail: function () { /* 预算加载失败不打扰 */ }
+    })
+  },
+
+  /**
+   * 根据预算 + 当前支出刷新进度条状态
+   */
+  refreshBudgetBar: function () {
+    const budget = this.data.budget
+    if (!(budget > 0)) {
+      this.setData({ budgetPercent: 0, budgetState: 'safe', budgetStateText: '', budgetRemainText: '' })
+      return
+    }
+
+    const expense = parseFloat(this.data.totalExpense) || 0
+    const rawPercent = expense / budget * 100
+    const percent = Math.min(Math.round(rawPercent), 100)
+
+    let state = 'safe'
+    let stateText = '状态良好'
+    let remainText = ''
+    if (rawPercent >= 100) {
+      state = 'over'
+      stateText = '已超支'
+      remainText = `已超支 ¥${(expense - budget).toFixed(2)}，管住手手 🙅`
+    } else if (rawPercent >= 80) {
+      state = 'warn'
+      stateText = '快超支啦'
+      remainText = `已用 ¥${expense.toFixed(2)}（${Math.round(rawPercent)}%）· 剩余 ¥${(budget - expense).toFixed(2)}`
+    } else {
+      remainText = `已用 ¥${expense.toFixed(2)}（${Math.round(rawPercent)}%）· 剩余 ¥${(budget - expense).toFixed(2)}`
+    }
+
+    this.setData({
+      budgetPercent: percent,
+      budgetState: state,
+      budgetStateText: stateText,
+      budgetRemainText: remainText
+    })
+  },
+
+  /**
+   * 点击预算卡片：设置/修改预算（输入 0 清除）
+   */
+  tapBudget: function () {
+    const that = this
+    const { budget, monthStr } = this.data
+
+    wx.showModal({
+      title: '本月预算',
+      content: budget > 0
+        ? `当前预算 ¥${budget.toFixed(2)}，输入新金额（0 为清除预算）`
+        : `设置 ${monthStr} 的预算金额（元）`,
+      editable: true,
+      placeholderText: budget > 0 ? String(budget) : '例如 3000',
+      success: function (res) {
+        if (!res.confirm) return
+        const v = parseFloat(res.content)
+        if (isNaN(v) || v < 0) {
+          util.showToast('请输入有效金额')
+          return
+        }
+        wx.cloud.callFunction({
+          followSystem: true,
+          name: 'bookkeeping',
+          data: { action: 'setBudget', month: monthStr, amount: v },
+          success: function (r) {
+            if (r.result.code === 0) {
+              util.showToast(r.result.msg, 'success')
+              that.loadBudget()
+            } else {
+              util.showToast(r.result.msg || '设置失败')
+            }
+          },
+          fail: function () {
+            util.showToast('网络错误，请重试')
+          }
+        })
+      }
     })
   },
 

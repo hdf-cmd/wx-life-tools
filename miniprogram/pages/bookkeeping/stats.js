@@ -18,6 +18,8 @@ Page({
     totalExpense: '0.00',
     balance: '0.00',
     categoryStats: [],  // 分类统计数据
+    trend: [],          // 近 6 个月趋势
+    exporting: false,
     loading: false
   },
 
@@ -40,6 +42,7 @@ Page({
     }
 
     this.loadStats()
+    this.loadTrend()
   },
 
   /**
@@ -119,6 +122,113 @@ Page({
         console.error('[loadStats] 调用失败:', err)
         util.showToast('网络错误，请重试')
         that.setData({ loading: false })
+      }
+    })
+  },
+
+  /**
+   * 加载近 6 个月收支趋势
+   */
+  loadTrend: function () {
+    const that = this
+
+    wx.cloud.callFunction({
+      followSystem: true,
+      name: 'bookkeeping',
+      data: { action: 'trend', months: 6 },
+      success: function (res) {
+        if (res.result.code !== 0) return
+        const list = res.result.data || []
+
+        // 柱高按支出/收入较大值归一化（保留 3% 最小可见高度）
+        let maxVal = 0
+        list.forEach(item => {
+          maxVal = Math.max(maxVal, item.income, item.expense)
+        })
+        list.forEach(item => {
+          item.incomeH = maxVal > 0 ? Math.max(Math.round(item.income / maxVal * 100), 3) : 3
+          item.expenseH = maxVal > 0 ? Math.max(Math.round(item.expense / maxVal * 100), 3) : 3
+        })
+
+        that.setData({ trend: list })
+      },
+      fail: function () {
+        // 趋势加载失败不打扰用户（辅助信息）
+      }
+    })
+  },
+
+  /**
+   * 点击趋势柱 → 切换到该月统计
+   */
+  onTrendTap: function (e) {
+    const month = e.currentTarget.dataset.month
+    if (!month || month === this.data.monthStr) return
+    const parts = month.split('-')
+    this.setData({
+      year: parseInt(parts[0]),
+      month: parseInt(parts[1]),
+      monthStr: month
+    })
+    this.loadStats()
+  },
+
+  /**
+   * 导出本月 CSV（复制到剪贴板）
+   */
+  exportMonth: function () {
+    const that = this
+    if (this.data.exporting) return
+    this.setData({ exporting: true })
+
+    wx.cloud.callFunction({
+      followSystem: true,
+      name: 'bookkeeping',
+      data: { action: 'export', month: this.data.monthStr },
+      success: function (res) {
+        that.setData({ exporting: false })
+        if (res.result.code !== 0) {
+          util.showToast(res.result.msg || '导出失败')
+          return
+        }
+        const bills = res.result.data || []
+        if (bills.length === 0) {
+          util.showToast('本月没有账单可导出')
+          return
+        }
+
+        // 拼 CSV（字段含逗号/引号/换行时加引号转义；BOM 头保证 Excel 中文不乱码）
+        const escape = function (v) {
+          const s = String(v === undefined || v === null ? '' : v)
+          return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s
+        }
+        let csv = '\ufeff日期,类型,分类,金额,备注\n'
+        bills.forEach(b => {
+          csv += [
+            b.date,
+            b.type === 'income' ? '收入' : '支出',
+            escape(b.category),
+            b.amount.toFixed(2),
+            escape(b.note || '')
+          ].join(',') + '\n'
+        })
+
+        wx.setClipboardData({
+          data: csv,
+          success: function () {
+            wx.showModal({
+              title: '导出成功',
+              content: `${that.data.monthStr} 共 ${bills.length} 笔账单已复制为 CSV，去电脑上粘贴到表格文件即可保存`,
+              showCancel: false,
+              confirmText: '知道了'
+            })
+          }
+        })
+      },
+      fail: function (err) {
+        that.setData({ exporting: false })
+        console.error('[exportMonth] 调用失败:', err)
+        util.showToast('网络错误，请重试')
       }
     })
   }

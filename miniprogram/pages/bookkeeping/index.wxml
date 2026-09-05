@@ -32,6 +32,23 @@
     </view>
   </view>
 
+  <!-- 月度预算（点击设置/修改） -->
+  <view class="budget-card card" bindtap="tapBudget" hover-class="budget-hover">
+    <block wx:if="{{budget > 0}}">
+      <view class="budget-header">
+        <text class="budget-title">本月预算 ¥{{budget}}</text>
+        <text class="budget-state {{budgetState}}">{{budgetStateText}}</text>
+      </view>
+      <view class="budget-track">
+        <view class="budget-fill {{budgetState}}" style="width: {{budgetPercent}}%;"></view>
+      </view>
+      <text class="budget-remain">{{budgetRemainText}}</text>
+    </block>
+    <view wx:else class="budget-empty">
+      <text class="budget-empty-text">🎯 点击设置本月预算，超支早知道</text>
+    </view>
+  </view>
+
   <!-- 账单列表 -->
   <view class="bill-list" wx:if="{{groupedBills.length > 0}}">
     <view class="day-group" wx:for="{{groupedBills}}" wx:key="date">

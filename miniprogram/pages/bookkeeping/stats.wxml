@@ -33,6 +33,31 @@
     </view>
   </view>
 
+  <!-- 近 6 个月趋势 -->
+  <view class="trend-card card" wx:if="{{trend.length > 0}}">
+    <text class="section-title">近 6 个月趋势</text>
+    <view class="trend-chart">
+      <view
+        class="trend-col"
+        wx:for="{{trend}}"
+        wx:key="month"
+        data-month="{{item.month}}"
+        bindtap="onTrendTap"
+      >
+        <view class="trend-bars">
+          <view class="trend-bar income" style="height: {{item.incomeH}}%;"></view>
+          <view class="trend-bar expense {{item.month === monthStr ? 'current' : ''}}" style="height: {{item.expenseH}}%;"></view>
+        </view>
+        <text class="trend-label {{item.month === monthStr ? 'current' : ''}}">{{item.label}}</text>
+      </view>
+    </view>
+    <view class="trend-legend">
+      <text class="legend-item"><text class="legend-dot income"></text>收入</text>
+      <text class="legend-item"><text class="legend-dot expense"></text>支出</text>
+      <text class="legend-hint">点柱子可切月份</text>
+    </view>
+  </view>
+
   <!-- 分类占比列表 -->
   <view class="category-stats card" wx:if="{{categoryStats.length > 0}}">
     <text class="section-title">支出分类占比</text>
@@ -54,6 +79,11 @@
       </view>
     </view>
   </view>
+
+  <!-- 导出本月 CSV -->
+  <button class="export-btn" bindtap="exportMonth" disabled="{{exporting}}" hover-class="export-hover">
+    {{exporting ? '导出中...' : '⬇ 导出本月 CSV（复制到剪贴板）'}}
+  </button>
 
   <!-- 空状态 -->
   <empty-state

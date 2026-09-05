@@ -35,13 +35,58 @@ Page({
     categories: EXPENSE_CATEGORIES, // 当前分类列表
     note: '',                 // 备注
     date: '',                 // 日期 YYYY-MM-DD
-    saving: false             // 防抖：防止重复提交
+    saving: false,            // 防抖：防止重复提交
+    editId: ''                // 编辑模式：账单ID（空=新增模式）
   },
 
-  onLoad: function () {
+  onLoad: function (options) {
     // 默认日期为今天
     const today = util.formatDate(new Date())
     this.setData({ date: today })
+
+    // 编辑模式：带 id 进入，加载原账单回填
+    if (options && options.id) {
+      this.setData({ editId: options.id })
+      wx.setNavigationBarTitle({ title: '编辑账单' })
+      this.loadBill(options.id)
+    }
+  },
+
+  /**
+   * 编辑模式：加载原账单并回填表单
+   */
+  loadBill: function (id) {
+    const that = this
+    util.showLoading('加载中...')
+
+    wx.cloud.callFunction({
+      followSystem: true,
+      name: 'bookkeeping',
+      data: { action: 'get', id: id },
+      success: function (res) {
+        util.hideLoading()
+        if (res.result.code !== 0) {
+          util.showToast(res.result.msg || '账单加载失败')
+          setTimeout(function () { wx.navigateBack() }, 1000)
+          return
+        }
+        const bill = res.result.data
+        const categories = bill.type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
+        that.setData({
+          type: bill.type,
+          categories: categories,
+          amount: String(bill.amount),
+          note: bill.note || '',
+          date: bill.date,
+          selectedCategory: categories.find(function (c) { return c.name === bill.category }) || null
+        })
+      },
+      fail: function (err) {
+        util.hideLoading()
+        console.error('[loadBill] 调用失败:', err)
+        util.showToast('网络错误，请重试')
+      }
+    })
   },
 
   /**
@@ -128,21 +173,26 @@ Page({
 
     util.showLoading('保存中...')
 
+    // 编辑模式走 update，新增走 add
+    const isEdit = !!this.data.editId
+    const data = {
+      action: isEdit ? 'update' : 'add',
+      amount: safeAmount,
+      type: type,
+      category: selectedCategory.name,
+      note: note,
+      date: date
+    }
+    if (isEdit) data.id = this.data.editId
+
     wx.cloud.callFunction({
       followSystem: true,
       name: 'bookkeeping',
-      data: {
-        action: 'add',
-        amount: safeAmount,
-        type: type,
-        category: selectedCategory.name,
-        note: note,
-        date: date
-      },
+      data: data,
       success: function (res) {
         util.hideLoading()
         if (res.result.code === 0) {
-          util.showToast('保存成功', 'success')
+          util.showToast(isEdit ? '已保存' : '保存成功', 'success')
           // 返回上一页
           setTimeout(() => {
             wx.navigateBack()

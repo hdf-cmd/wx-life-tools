@@ -191,3 +191,85 @@
   font-size: var(--font-xs);
   color: var(--color-text-placeholder);
 }
+
+/* ===== 月度预算 ===== */
+.budget-card {
+  margin-bottom: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+}
+
+.budget-hover {
+  opacity: 0.92;
+}
+
+.budget-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-sm);
+}
+
+.budget-title {
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.budget-state {
+  font-size: var(--font-xs);
+  padding: 4rpx 16rpx;
+  border-radius: var(--radius-round);
+}
+
+.budget-state.safe {
+  color: var(--color-success);
+  background: rgba(76, 175, 80, 0.12);
+}
+
+.budget-state.warn {
+  color: #F08C2E;
+  background: rgba(255, 159, 67, 0.14);
+}
+
+.budget-state.over {
+  color: var(--color-danger);
+  background: rgba(255, 82, 82, 0.12);
+}
+
+.budget-track {
+  height: 14rpx;
+  border-radius: var(--radius-round);
+  background: var(--color-bg-hover);
+  overflow: hidden;
+}
+
+.budget-fill {
+  height: 100%;
+  border-radius: var(--radius-round);
+  background: var(--color-primary);
+  transition: width 0.4s ease;
+}
+
+.budget-fill.warn {
+  background: #FF9F43;
+}
+
+.budget-fill.over {
+  background: var(--color-danger);
+}
+
+.budget-remain {
+  display: block;
+  margin-top: var(--spacing-sm);
+  font-size: var(--font-xs);
+  color: var(--color-text-secondary);
+}
+
+.budget-empty {
+  padding: 6rpx 0;
+}
+
+.budget-empty-text {
+  font-size: var(--font-sm);
+  color: var(--color-text-placeholder);
+}
