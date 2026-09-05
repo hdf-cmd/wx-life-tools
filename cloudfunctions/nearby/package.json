@@ -1,0 +1,7 @@
+{
+  "name": "nearby",
+  "version": "1.0.0",
+  "description": "附近 POI 搜索云函数 - 代理腾讯位置服务 WebService API",
+  "main": "index.js",
+  "dependencies": {}
+}

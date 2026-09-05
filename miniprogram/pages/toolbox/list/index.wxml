@@ -1,0 +1,51 @@
+<!--pages/toolbox/list/index.wxml-->
+<!--工具箱二级页面 - 按分类展示具体工具-->
+
+<view class="page-container">
+  <!-- 本地工具列表 -->
+  <view class="entry-list" wx:if="{{tools.length}}">
+    <view
+      class="entry-card"
+      wx:for="{{tools}}"
+      wx:key="title"
+      data-page="{{item.page}}"
+      bindtap="goToPage"
+    >
+      <text class="entry-icon">{{item.icon}}</text>
+      <view class="entry-text">
+        <text class="entry-title">{{item.title}}</text>
+        <text class="entry-desc">{{item.desc}}</text>
+      </view>
+      <text class="entry-arrow">›</text>
+    </view>
+  </view>
+
+  <!-- 在线编辑工具 -->
+  <block wx:if="{{online.length}}">
+    <!-- 客服入口：点击后在客服会话中获取链接，点开即用 -->
+    <view class="contact-card">
+      <view class="contact-info">
+        <text class="contact-icon">💬</text>
+        <view class="contact-text">
+          <text class="contact-title">一键打开在线工具</text>
+          <text class="contact-desc">点击联系客服，回复“工具”获取链接，点开即用</text>
+        </view>
+      </view>
+      <button class="contact-btn" open-type="contact" session-from="tools">获取链接</button>
+    </view>
+
+    <view class="online-tip">或点击下方工具复制链接，到浏览器打开</view>
+    <view class="online-grid">
+      <view
+        class="online-item"
+        wx:for="{{online}}"
+        wx:key="title"
+        data-path="{{item.path}}"
+        bindtap="openOnline"
+      >
+        <text class="online-icon">{{item.icon}}</text>
+        <text class="online-title">{{item.title}}</text>
+      </view>
+    </view>
+  </block>
+</view>

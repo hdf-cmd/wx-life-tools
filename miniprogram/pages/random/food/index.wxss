@@ -1,0 +1,348 @@
+/* pages/random/food/index.wxss */
+/* 「今天吃什么」简洁现代风格，珊瑚红主题 */
+
+/* ===== 页面容器 ===== */
+.page-container {
+  min-height: 100vh;
+  padding: 40rpx 36rpx 60rpx;
+  background: #FAFAFA;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== 顶部标题区：紧凑不被遮挡 ===== */
+.header {
+  text-align: center;
+  padding: 24rpx 0 32rpx;
+}
+
+.header-title {
+  display: block;
+  font-size: 42rpx;
+  font-weight: 700;
+  color: #222;
+  margin-bottom: 10rpx;
+}
+
+.header-sub {
+  display: block;
+  font-size: 24rpx;
+  color: #AAA;
+  margin-bottom: 12rpx;
+}
+
+/* 菜品数量标签：小巧不抢眼 */
+.header-count {
+  display: inline-block;
+  font-size: 20rpx;
+  color: #FF6B6B;
+  background: #FFF0F0;
+  border-radius: 14rpx;
+  padding: 2rpx 14rpx;
+}
+
+/* ===== 结果展示区：扩大展示空间 ===== */
+.result-area {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 60rpx 0 40rpx;
+  min-height: 360rpx;
+  flex: 1;
+}
+
+.result-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+}
+
+/* 滚动中：轻微抖动反馈 */
+.result-content.rolling {
+  animation: rollShake 0.06s infinite;
+}
+
+@keyframes rollShake {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2rpx); }
+}
+
+/* 结果出现：scale 弹跳 */
+.result-content.pop {
+  animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes popIn {
+  0% { transform: scale(0.6); opacity: 0.4; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* emoji 缩小，减少占用空间 */
+.result-emoji {
+  font-size: 100rpx;
+  line-height: 1.2;
+}
+
+/* 菜名字体加大 */
+.result-name {
+  font-size: 52rpx;
+  font-weight: 700;
+  color: #222;
+  letter-spacing: 4rpx;
+}
+
+/* 未选择时占位问号加大 */
+.result-placeholder {
+  font-size: 120rpx;
+  color: #DDD;
+  font-weight: 300;
+}
+
+/* ===== 操作按钮区 ===== */
+.actions {
+  margin-top: 48rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24rpx;
+}
+
+/* 主按钮：高度减小到 88rpx，字体适中 */
+.btn-primary {
+  width: 100%;
+  height: 100rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #FFF;
+  background: linear-gradient(135deg, #FF6B6B 0%, #FF8E6B 100%);
+  border-radius: 50rpx;
+  border: none;
+  letter-spacing: 4rpx;
+  box-shadow: 0 8rpx 24rpx rgba(255, 107, 107, 0.3);
+  transition: opacity 0.15s ease;
+  padding: 0;
+  margin: 0;
+}
+
+.btn-primary::after {
+  border: none;
+}
+
+.btn-primary:active {
+  opacity: 0.85;
+}
+
+.btn-primary.disabled {
+  opacity: 0.6;
+}
+
+/* 确认按钮：出结果后显示 */
+.btn-confirm {
+  width: 100%;
+  height: 96rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 34rpx;
+  font-weight: 600;
+  color: #FFF;
+  background: linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%);
+  border-radius: 48rpx;
+  border: none;
+  letter-spacing: 4rpx;
+  box-shadow: 0 8rpx 24rpx rgba(76,175,80,0.3);
+  padding: 0;
+  margin: 0;
+}
+
+.btn-confirm::after {
+  border: none;
+}
+
+.btn-confirm:active {
+  opacity: 0.85;
+}
+
+/* 次级按钮行 */
+.btn-row {
+  display: flex;
+  gap: 20rpx;
+  width: 100%;
+}
+
+/* 次级按钮：高度 80rpx，字体 28rpx */
+.btn-secondary {
+  flex: 1;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30rpx;
+  font-weight: 500;
+  color: #FF6B6B;
+  background: #FFF;
+  border: 2rpx solid #FFD8D8;
+  border-radius: 44rpx;
+  transition: opacity 0.15s ease;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.btn-secondary::after {
+  border: none;
+}
+
+.btn-secondary:active {
+  opacity: 0.7;
+  background: #FFF5F5;
+}
+
+/* ===== 历史记录区 ===== */
+.history {
+  margin-top: 48rpx;
+  padding: 0 0 20rpx;
+}
+
+/* 标题：小字号灰色 */
+.history-label {
+  display: block;
+  font-size: 26rpx;
+  color: #BBB;
+  margin-bottom: 16rpx;
+}
+
+.history-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+}
+
+/* 历史标签：大小适中 */
+.history-tag {
+  display: inline-flex;
+  align-items: center;
+  background: #FFF;
+  border: 2rpx solid #F0F0F0;
+  border-radius: 24rpx;
+  padding: 10rpx 20rpx;
+  font-size: 24rpx;
+  color: #555;
+}
+
+/* ===== 菜品管理面板（默认隐藏，平滑展开）===== */
+.manage-panel {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+  margin-top: 32rpx;
+}
+
+.manage-panel.open {
+  max-height: 800rpx;
+}
+
+.panel-inner {
+  background: #FFF;
+  border-radius: 24rpx;
+  padding: 24rpx;
+  border: 2rpx solid #F0F0F0;
+}
+
+/* 添加行 */
+.add-row {
+  display: flex;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+}
+
+.add-input {
+  flex: 1;
+  height: 64rpx;
+  background: #F7F7F7;
+  border-radius: 14rpx;
+  padding: 0 20rpx;
+  font-size: 26rpx;
+}
+
+.btn-add {
+  width: 110rpx;
+  height: 64rpx;
+  line-height: 64rpx;
+  text-align: center;
+  font-size: 26rpx;
+  font-weight: 500;
+  color: #FFF;
+  background: #FF6B6B;
+  border-radius: 14rpx;
+  border: none;
+  padding: 0;
+}
+
+.btn-add::after {
+  border: none;
+}
+
+/* 标签滚动区 */
+.tags-scroll {
+  max-height: 260rpx;
+}
+
+.tags-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+}
+
+/* 菜品标签 */
+.food-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4rpx;
+  border-radius: 18rpx;
+  padding: 4rpx 14rpx;
+  font-size: 22rpx;
+}
+
+.food-tag.custom {
+  background: #FFF5ED;
+  border: 2rpx solid #FFD8B8;
+}
+
+.food-tag.preset {
+  background: #FFF5F2;
+  border: 2rpx solid #FFE0D6;
+}
+
+.tag-text {
+  color: #555;
+}
+
+.tag-close {
+  font-size: 24rpx;
+  color: #FF5252;
+  font-weight: 300;
+  margin-left: 4rpx;
+  padding: 0 2rpx;
+}
+
+.tag-close.exclude {
+  color: #CCC;
+}
+
+/* 恢复默认 */
+.restore-row {
+  margin-top: 14rpx;
+  text-align: center;
+}
+
+.restore-btn {
+  font-size: 22rpx;
+  color: #AAA;
+  text-decoration: underline;
+}

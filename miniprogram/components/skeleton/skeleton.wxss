@@ -1,0 +1,74 @@
+/* components/skeleton/skeleton.wxss */
+/* 骨架屏组件样式 */
+
+.skeleton-container {
+  padding: var(--spacing-lg, 32rpx);
+}
+
+/* 卡片占位 */
+.skeleton-card {
+  background-color: var(--color-bg-card, #FFFFFF);
+  border-radius: var(--radius-lg, 24rpx);
+  padding: var(--spacing-lg, 32rpx);
+  margin-bottom: var(--spacing-md, 24rpx);
+  box-shadow: var(--shadow-sm, 0 2rpx 8rpx rgba(0, 0, 0, 0.06));
+}
+
+/* 列表行 */
+.skeleton-list {
+  background-color: var(--color-bg-card, #FFFFFF);
+  border-radius: var(--radius-lg, 24rpx);
+  padding: var(--spacing-md, 24rpx);
+  box-shadow: var(--shadow-sm, 0 2rpx 8rpx rgba(0, 0, 0, 0.06));
+}
+
+.skeleton-row {
+  display: flex;
+  align-items: center;
+  padding: var(--spacing-md, 24rpx) 0;
+  border-bottom: 1rpx solid var(--color-border-light, #F0F0F0);
+}
+
+.skeleton-row:last-child {
+  border-bottom: none;
+}
+
+/* 头像占位 */
+.skeleton-avatar {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: var(--radius-md, 16rpx);
+  flex-shrink: 0;
+  margin-right: var(--spacing-md, 24rpx);
+  background-color: var(--color-bg-hover, #F0F0F0);
+}
+
+/* 内容区 */
+.skeleton-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 灰色块基础样式 */
+.skeleton-block {
+  background-color: var(--color-bg-hover, #F0F0F0);
+  border-radius: var(--radius-sm, 8rpx);
+}
+
+/* 脉冲动画 */
+.skeleton-animate {
+  animation: skeletonPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes skeletonPulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+  100% {
+    opacity: 1;
+  }
+}

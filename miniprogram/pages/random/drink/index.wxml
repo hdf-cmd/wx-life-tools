@@ -1,0 +1,145 @@
+<!--pages/random/drink/index.wxml-->
+<!--喝什么 - 奶茶随机选择-->
+
+<view class="page-container">
+
+  <!-- 品牌选择页 -->
+  <block wx:if="{{!selectedBrand}}">
+    <view class="header">
+      <text class="header-title">🧋 今天喝什么？</text>
+      <text class="header-sub">选一个品牌，随机推荐饮品</text>
+    </view>
+
+    <!-- 附近品牌按钮 -->
+    <view class="nearby-bar">
+      <button class="btn-nearby {{locationLoading ? 'loading' : ''}}" bindtap="goNearby" disabled="{{locationLoading}}">
+        {{locationLoading ? '定位中...' : (nearbyMode ? '📍 附近品牌（已找到 ' + nearbyBrands.length + ' 家）' : '📍 看看附近有什么')}}
+      </button>
+      <button class="btn-nearby-reset" wx:if="{{nearbyMode}}" bindtap="exitNearbyMode">显示全部品牌</button>
+    </view>
+
+    <!-- 当前定位展示 -->
+    <view class="location-bar" wx:if="{{nearbyMode}}">
+      <text class="location-icon">📍</text>
+      <text class="location-text">{{locationText ? locationText : (locationFallback ? '未能解析位置（已按默认位置计算）' : '正在获取当前位置...')}}</text>
+    </view>
+
+    <view class="brand-grid">
+      <view
+        class="brand-card {{item.distance ? 'has-distance' : ''}}"
+        wx:for="{{nearbyMode ? nearbyBrands : brands}}"
+        wx:key="name"
+        bindtap="selectBrand"
+        data-name="{{item.name}}"
+      >
+        <image class="brand-logo" src="{{item.logo}}" mode="aspectFit" />
+        <text class="brand-name">{{item.name}}</text>
+        <text class="brand-count">{{item.drinks.length}}款</text>
+        <text class="brand-distance" wx:if="{{item.distanceText}}">📍 {{item.distanceText}}</text>
+      </view>
+    </view>
+  </block>
+
+  <!-- 饮品随机页 -->
+  <block wx:else>
+    <!-- 顶部品牌信息 -->
+    <view class="brand-header">
+      <view class="brand-back" bindtap="backToBrands">
+        <text class="back-arrow">‹</text>
+        <text class="back-text">返回</text>
+      </view>
+      <view class="brand-header-name">
+        <image class="header-logo" src="{{selectedBrand.logo}}" mode="aspectFit" />
+        <text>{{selectedBrand.name}}</text>
+      </view>
+      <text class="brand-header-count">{{displayDrinks.length}} 款饮品</text>
+    </view>
+
+    <!-- 结果展示区 -->
+    <view class="result-area">
+      <view class="result-content {{resultAnim ? 'pop' : ''}} {{isRolling ? 'rolling' : ''}}">
+        <block wx:if="{{displayDrink}}">
+          <text class="result-name">{{displayDrink.name}}</text>
+          <text class="result-price" wx:if="{{displayDrink.price}}">¥{{displayDrink.price}}</text>
+        </block>
+        <block wx:else>
+          <text class="result-placeholder">？</text>
+        </block>
+      </view>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="actions">
+      <button class="btn-primary {{isRolling ? 'disabled' : ''}}" bindtap="startRoll" disabled="{{isRolling}}">
+        {{isRolling ? '选择中...' : '随机选一个'}}
+      </button>
+      <view class="btn-row">
+        <button class="btn-secondary" bindtap="refresh">换一批</button>
+        <button class="btn-secondary" bindtap="toggleManagePanel">管理饮品</button>
+      </view>
+    </view>
+
+    <!-- 历史记录 -->
+    <view class="history" wx:if="{{historyList.length > 0}}">
+      <text class="history-label">最近选择</text>
+      <view class="history-tags">
+        <view class="history-tag" wx:for="{{historyList}}" wx:key="index" wx:if="{{item.brandName === selectedBrand.name}}">
+          <text>{{item.name}}</text>
+          <text class="history-price" wx:if="{{item.price}}">¥{{item.price}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 管理面板 -->
+    <view class="manage-panel {{showManagePanel ? 'open' : ''}}">
+      <view class="panel-inner">
+        <!-- 添加饮品 -->
+        <view class="add-row">
+          <input class="add-input" placeholder="输入饮品名称" value="{{newDrinkName}}" bindinput="onNewDrinkInput" bindconfirm="addDrink" />
+          <button class="btn-add" bindtap="addDrink">添加</button>
+        </view>
+
+        <!-- 自定义饮品标签 -->
+        <view class="tag-group" wx:if="{{customDrinks[selectedBrand.name].length > 0}}">
+          <text class="tag-group-label">自定义饮品</text>
+          <scroll-view class="tag-scroll" scroll-y>
+            <view class="tags-wrap">
+              <view
+                class="drink-tag custom"
+                wx:for="{{customDrinks[selectedBrand.name]}}"
+                wx:key="*this"
+              >
+                <text class="tag-text">{{item}}</text>
+                <text class="tag-close" catchtap="deleteCustomDrink" data-name="{{item}}">×</text>
+              </view>
+            </view>
+          </scroll-view>
+        </view>
+
+        <!-- 预设饮品标签（可排除） -->
+        <view class="tag-group">
+          <text class="tag-group-label">预设饮品（点击 × 排除）</text>
+          <scroll-view class="tag-scroll" scroll-y>
+            <view class="tags-wrap">
+              <view
+                class="drink-tag preset {{excludedDrinks[selectedBrand.name] && excludedDrinks[selectedBrand.name].indexOf(item.name) >= 0 ? 'excluded' : ''}}"
+                wx:for="{{selectedBrand.drinks}}"
+                wx:key="name"
+              >
+                <text class="tag-text">{{item.name}}</text>
+                <text class="tag-price" wx:if="{{item.price}}">¥{{item.price}}</text>
+                <text class="tag-toggle" catchtap="toggleExcludeDrink" data-name="{{item.name}}">×</text>
+              </view>
+            </view>
+          </scroll-view>
+        </view>
+
+        <!-- 恢复默认 -->
+        <view class="restore-row">
+          <button class="btn-restore" bindtap="restoreDefault">恢复默认饮品</button>
+        </view>
+      </view>
+    </view>
+  </block>
+
+</view>

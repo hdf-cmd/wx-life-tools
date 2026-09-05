@@ -1,0 +1,104 @@
+<!--pages/random/group/index.wxml-->
+<!--抽签分组工具-->
+
+<view class="container">
+  <!-- 模式切换 -->
+  <view class="mode-tabs">
+    <view class="mode-tab {{mode === 'group' ? 'active' : ''}}" bindtap="switchMode" data-mode="group">随机分组</view>
+    <view class="mode-tab {{mode === 'draw' ? 'active' : ''}}" bindtap="switchMode" data-mode="draw">抽签模式</view>
+  </view>
+
+  <!-- 随机分组模式 -->
+  <view wx:if="{{mode === 'group'}}">
+    <!-- 输入名单 -->
+    <view class="section card">
+      <view class="section-header">
+        <text class="section-title">输入名单</text>
+        <text class="section-desc">每行一个名字，或逗号分隔</text>
+      </view>
+      <textarea class="names-input" placeholder="输入名字列表&#10;例如：&#10;张三&#10;李四&#10;王五" value="{{namesText}}" bindinput="onNamesInput" maxlength="-1" auto-height></textarea>
+      <view class="names-count">已输入 {{names.length}} 人</view>
+    </view>
+
+    <!-- 分组数量 -->
+    <view class="section card">
+      <view class="section-header">
+        <text class="section-title">分组数量</text>
+      </view>
+      <view class="group-count-row">
+        <view class="count-btn" bindtap="decreaseGroup">-</view>
+        <text class="count-display">{{groupCount}}</text>
+        <view class="count-btn" bindtap="increaseGroup">+</view>
+      </view>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="action-btns">
+      <button class="btn-primary action-btn" bindtap="startGroup" disabled="{{names.length < 2 || groupCount < 2}}">
+        随机分组
+      </button>
+      <button class="btn-outline action-btn mt-md" bindtap="reGroup" wx:if="{{groupResults.length > 0}}">
+        重新分组
+      </button>
+    </view>
+
+    <!-- 分组结果 -->
+    <view class="section card" wx:if="{{groupResults.length > 0}}">
+      <view class="section-header">
+        <text class="section-title">分组结果</text>
+      </view>
+      <view class="group-results">
+        <view class="group-result-item" wx:for="{{groupResults}}" wx:key="index">
+          <view class="group-header">第 {{index + 1}} 组 ({{item.length}}人)</view>
+          <view class="group-members">
+            <text class="member-tag" wx:for="{{item}}" wx:for-item="member" wx:key="*this">{{member}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 抽签模式 -->
+  <view wx:if="{{mode === 'draw'}}">
+    <!-- 设置签数 -->
+    <view class="section card">
+      <view class="section-header">
+        <text class="section-title">设置抽签</text>
+      </view>
+      <view class="draw-settings">
+        <view class="draw-item">
+          <text class="draw-label">签的数量</text>
+          <input class="draw-input" type="number" placeholder="10" value="{{drawCount}}" bindinput="onDrawCountInput" />
+        </view>
+        <view class="draw-item">
+          <text class="draw-label">抽取数量</text>
+          <input class="draw-input" type="number" placeholder="1" value="{{drawPick}}" bindinput="onDrawPickInput" />
+        </view>
+      </view>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="action-btns">
+      <button class="btn-primary action-btn" bindtap="startDraw" disabled="{{isDrawing}}">
+        {{isDrawing ? '抽签中...' : '开始抽签'}}
+      </button>
+    </view>
+
+    <!-- 抽签结果 -->
+    <view class="section card" wx:if="{{drawResults.length > 0}}">
+      <view class="section-header">
+        <text class="section-title">抽签结果</text>
+      </view>
+      <view class="draw-results">
+        <view class="draw-result-item" wx:for="{{drawResults}}" wx:key="index">
+          <text class="draw-number">第 {{item}} 签</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 抽签动画 -->
+    <view class="draw-animation" wx:if="{{isDrawing}}">
+      <text class="draw-anim-text">🎋 抽签中...</text>
+    </view>
+  </view>
+</view>

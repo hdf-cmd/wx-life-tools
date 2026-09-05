@@ -1,0 +1,64 @@
+<!--pages/bookkeeping/stats.wxml-->
+<!--统计页面-->
+
+<view class="container stats-page">
+  <!-- 月份切换 -->
+  <view class="month-switcher">
+    <view class="arrow-btn" bindtap="prevMonth">
+      <text class="arrow">◀</text>
+    </view>
+    <text class="month-text">{{year}}年{{month}}月</text>
+    <view class="arrow-btn" bindtap="nextMonth">
+      <text class="arrow">▶</text>
+    </view>
+  </view>
+
+  <!-- 收支汇总卡片 -->
+  <view class="summary-card card">
+    <view class="summary-row">
+      <view class="summary-item">
+        <text class="summary-label">总收入</text>
+        <text class="summary-value income">¥{{totalIncome}}</text>
+      </view>
+      <view class="summary-divider"></view>
+      <view class="summary-item">
+        <text class="summary-label">总支出</text>
+        <text class="summary-value expense">¥{{totalExpense}}</text>
+      </view>
+      <view class="summary-divider"></view>
+      <view class="summary-item">
+        <text class="summary-label">结余</text>
+        <text class="summary-value balance">¥{{balance}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 分类占比列表 -->
+  <view class="category-stats card" wx:if="{{categoryStats.length > 0}}">
+    <text class="section-title">支出分类占比</text>
+
+    <view class="category-item" wx:for="{{categoryStats}}" wx:key="category">
+      <view class="category-header">
+        <view class="category-left">
+          <text class="category-icon">{{item.icon}}</text>
+          <text class="category-name">{{item.category}}</text>
+        </view>
+        <view class="category-right">
+          <text class="category-amount">¥{{item.amount}}</text>
+          <text class="category-percent">{{item.percent}}%</text>
+        </view>
+      </view>
+      <!-- 进度条 -->
+      <view class="progress-bar">
+        <view class="progress-fill" style="width: {{item.percent}}%;"></view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <empty-state
+    wx:if="{{!loading && categoryStats.length === 0}}"
+    icon="📊"
+    text="本月暂无支出记录"
+  />
+</view>

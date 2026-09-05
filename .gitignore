@@ -1,0 +1,25 @@
+# ===== 依赖 =====
+node_modules/
+
+# ===== 微信开发者工具 =====
+# 个人本地配置（含本地 AppID 覆盖、编译条件等），不入库
+project.private.config.json
+# 工具生成的编译产物/缓存
+.DS_Store
+*.log
+
+# ===== 工具/AI 工作目录 =====
+.dsh-vision/
+.menu_research/
+
+# ===== 编辑器 =====
+.vscode/
+.idea/
+*.swp
+
+# ===== 系统文件 =====
+Thumbs.db
+desktop.ini
+
+# ===== AI 工作区标记 =====
+.aicoding-chat-workspace

@@ -1,0 +1,82 @@
+<!--pages/random/food/index.wxml-->
+<!--「今天吃什么」简洁现代布局-->
+
+<view class="page-container">
+  <!-- 顶部标题区：简洁紧凑 -->
+  <view class="header">
+    <text class="header-title">🍜 今天吃什么？</text>
+    <text class="header-sub">点击按钮随机选一个</text>
+    <text class="header-count">共 {{foodList.length}} 道菜品</text>
+  </view>
+
+  <!-- 中央结果展示区：居中大字，不做圆形 -->
+  <view class="result-area">
+    <view class="result-content {{resultAnim ? 'pop' : ''}} {{isRolling ? 'rolling' : ''}}">
+      <block wx:if="{{displayFood}}">
+        <text class="result-emoji">{{displayFood.emoji}}</text>
+        <text class="result-name">{{displayFood.name}}</text>
+      </block>
+      <!-- 未选择时显示问号占位 -->
+      <block wx:else>
+        <text class="result-placeholder">？</text>
+      </block>
+    </view>
+  </view>
+
+  <!-- 操作按钮区 -->
+  <view class="actions">
+    <!-- 主按钮：全宽渐变 -->
+    <button class="btn-primary {{isRolling ? 'disabled' : ''}}" bindtap="startRoll" disabled="{{isRolling}}">
+      {{isRolling ? '选择中...' : '随机选一个'}}
+    </button>
+    <!-- 确认按钮：出结果后显示 -->
+    <button class="btn-confirm {{showResult ? '' : 'hidden'}}" bindtap="confirmFood" wx:if="{{showResult}}">
+      ✅ 就吃这个
+    </button>
+    <!-- 次级按钮行 -->
+    <view class="btn-row">
+      <button class="btn-secondary" bindtap="refresh">换一批</button>
+      <button class="btn-secondary" bindtap="toggleFoodPanel">管理菜品</button>
+    </view>
+  </view>
+
+  <!-- 历史记录：紧凑横向排列 -->
+  <view class="history" wx:if="{{historyList.length > 0}}">
+    <text class="history-label">最近选择</text>
+    <view class="history-tags">
+      <view class="history-tag" wx:for="{{historyList}}" wx:key="index">
+        <text>{{item.emoji}}{{item.name}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 菜品管理面板：默认隐藏，点击展开 -->
+  <view class="manage-panel {{showFoodPanel ? 'open' : ''}}">
+    <view class="panel-inner">
+      <!-- 添加菜品 -->
+      <view class="add-row">
+        <input class="add-input" placeholder="输入菜品名称" value="{{newFood}}" bindinput="onNewFoodInput" bindconfirm="addFood" />
+        <button class="btn-add" bindtap="addFood">添加</button>
+      </view>
+      <!-- 菜品标签列表 -->
+      <scroll-view class="tags-scroll" scroll-y>
+        <view class="tags-wrap">
+          <view
+            class="food-tag {{customFoods.indexOf(item.name) >= 0 ? 'custom' : 'preset'}}"
+            wx:for="{{foodList}}"
+            wx:key="name"
+          >
+            <text class="tag-text">{{item.emoji}} {{item.name}}</text>
+            <text class="tag-close" wx:if="{{customFoods.indexOf(item.name) >= 0}}" catchtap="deleteCustomFood" data-name="{{item.name}}">×</text>
+            <text class="tag-close exclude" wx:else catchtap="toggleExcludeFood" data-name="{{item.name}}">×</text>
+          </view>
+        </view>
+      </scroll-view>
+      <!-- 恢复默认 -->
+      <view class="restore-row">
+        <text class="restore-btn" bindtap="restoreDefault">恢复默认菜品</text>
+      </view>
+    </view>
+  </view>
+
+</view>

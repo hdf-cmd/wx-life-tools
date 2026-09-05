@@ -1,0 +1,63 @@
+<!--pages/habit/calendar.wxml-->
+<!--习惯打卡 - 日历视图页-->
+
+<view class="calendar-page">
+  <!-- 习惯信息头部 -->
+  <view class="cal-header">
+    <text class="cal-icon">{{habitIcon}}</text>
+    <text class="cal-name">{{habitName}}</text>
+  </view>
+
+  <!-- 月份切换 -->
+  <view class="month-bar">
+    <view class="month-arrow" bindtap="onPrevMonth">
+      <text>◀</text>
+    </view>
+    <text class="month-text">{{monthStr}}</text>
+    <view class="month-arrow" bindtap="onNextMonth">
+      <text>▶</text>
+    </view>
+  </view>
+
+  <!-- 星期标题 -->
+  <view class="week-header">
+    <text class="week-cell" wx:for="{{weekHeaders}}" wx:key="*this">{{item}}</text>
+  </view>
+
+  <!-- 日历网格 -->
+  <view class="calendar-grid" wx:if="{{!loading}}">
+    <view
+      class="cal-day {{item.isEmpty ? 'empty' : ''}} {{item.isChecked ? 'checked' : ''}} {{item.isToday ? 'today' : ''}}"
+      wx:for="{{calendarDays}}"
+      wx:key="date"
+    >
+      <text class="day-text" wx:if="{{!item.isEmpty}}">{{item.day}}</text>
+      <view class="check-dot" wx:if="{{item.isChecked}}">
+        <text class="dot-icon">✓</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 加载状态 -->
+  <view class="cal-loading" wx:else>
+    <text>加载中...</text>
+  </view>
+
+  <!-- 底部统计 -->
+  <view class="stats-bar">
+    <view class="stat-item">
+      <text class="stat-num">{{checkedDays}}</text>
+      <text class="stat-label">已打卡</text>
+    </view>
+    <view class="stat-divider">/</view>
+    <view class="stat-item">
+      <text class="stat-num">{{totalDays}}</text>
+      <text class="stat-label">本月天数</text>
+    </view>
+    <view class="stat-divider">|</view>
+    <view class="stat-item">
+      <text class="stat-num">{{completionRate}}%</text>
+      <text class="stat-label">完成率</text>
+    </view>
+  </view>
+</view>

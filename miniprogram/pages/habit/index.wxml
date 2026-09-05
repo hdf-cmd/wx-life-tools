@@ -1,0 +1,99 @@
+<!--pages/habit/habit.wxml-->
+<!--习惯打卡 - 列表页-->
+
+<view class="habit-page">
+  <!-- 顶部日期区域 -->
+  <view class="date-header">
+    <view class="date-left">
+      <text class="date-text">{{todayDisplay}}</text>
+      <text class="weekday-text">{{weekDay}}</text>
+    </view>
+    <view class="date-right">
+      <text class="date-subtitle">今日打卡</text>
+    </view>
+  </view>
+
+  <!-- 打卡成功鼓励提示 -->
+  <view class="encourage-bar {{showEncourage ? 'show' : ''}}">
+    <text class="encourage-icon">🎉</text>
+    <text class="encourage-text">{{encourageText}}</text>
+  </view>
+
+  <!-- 加载状态 -->
+  <view class="loading-wrap" wx:if="{{loading}}">
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 习惯列表 -->
+  <view class="habit-list" wx:elif="{{habitList.length > 0}}">
+    <view
+      class="habit-card {{item.checkedIn ? 'checked' : ''}}"
+      wx:for="{{habitList}}"
+      wx:key="_id"
+      data-habit="{{item}}"
+      bindtap="onCardTap"
+      bindlongpress="onCardLongPress"
+      hover-class="card-hover"
+    >
+      <!-- 左侧图标 -->
+      <view class="card-icon">
+        <text class="icon-emoji">{{item.icon}}</text>
+      </view>
+
+      <!-- 中间信息 -->
+      <view class="card-info">
+        <text class="habit-name">{{item.name}}</text>
+        <view class="card-meta">
+          <text class="streak-text" wx:if="{{item.streak > 0}}">🔥 {{item.streak}}天</text>
+          <text class="streak-text" wx:else>暂无连续</text>
+        </view>
+      </view>
+
+      <!-- 右侧打卡状态 -->
+      <view class="card-status">
+        <view class="status-checked" wx:if="{{item.checkedIn}}">
+          <text class="status-icon">✅</text>
+          <text class="status-text">已完成</text>
+        </view>
+        <view class="status-unchecked" wx:else>
+          <text class="status-icon">○</text>
+          <text class="status-text">去打卡</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-wrap" wx:else>
+    <empty-state
+      icon="🌱"
+      text="还没有习惯，点击下方添加第一个习惯吧"
+      showAction="{{true}}"
+      actionText="添加习惯"
+      bind:action="onEmptyAction"
+    />
+  </view>
+
+  <!-- 底部浮动添加按钮 -->
+  <view class="fab-btn" bindtap="goAddHabit" hover-class="fab-hover">
+    <text class="fab-text">+ 添加习惯</text>
+  </view>
+
+  <!-- 长按操作菜单遮罩 -->
+  <view class="action-mask" wx:if="{{showActionSheet}}" bindtap="closeActionSheet">
+    <view class="action-sheet" catchtap="">
+      <view class="action-title">{{currentHabit.name}}</view>
+      <view class="action-item" bindtap="onEditHabit">
+        <text class="action-icon">✏️</text>
+        <text>编辑</text>
+      </view>
+      <view class="action-item action-danger" bindtap="onDeleteHabit">
+        <text class="action-icon">🗑️</text>
+        <text>删除</text>
+      </view>
+      <view class="action-item action-cancel" bindtap="closeActionSheet">
+        <text>取消</text>
+      </view>
+    </view>
+  </view>
+</view>

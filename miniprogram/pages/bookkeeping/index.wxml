@@ -1,0 +1,84 @@
+<!--pages/bookkeeping/bookkeeping.wxml-->
+<!--记账本 - 账单列表页-->
+
+<view class="container bookkeeping-page">
+  <!-- 顶部月份切换 -->
+  <view class="month-switcher">
+    <view class="arrow-btn" bindtap="prevMonth">
+      <text class="arrow">◀</text>
+    </view>
+    <text class="month-text">{{currentYear}}年{{currentMonth}}月</text>
+    <view class="arrow-btn" bindtap="nextMonth">
+      <text class="arrow">▶</text>
+    </view>
+    <view class="stats-entry" bindtap="goStats">
+      <text class="stats-icon">📊</text>
+    </view>
+  </view>
+
+  <!-- 月度收支汇总 -->
+  <view class="summary-card card">
+    <view class="summary-item">
+      <text class="summary-label">收入</text>
+      <text class="summary-value income">+{{totalIncome}}</text>
+    </view>
+    <view class="summary-item">
+      <text class="summary-label">支出</text>
+      <text class="summary-value expense">-{{totalExpense}}</text>
+    </view>
+    <view class="summary-item">
+      <text class="summary-label">结余</text>
+      <text class="summary-value balance">{{balance}}</text>
+    </view>
+  </view>
+
+  <!-- 账单列表 -->
+  <view class="bill-list" wx:if="{{groupedBills.length > 0}}">
+    <view class="day-group" wx:for="{{groupedBills}}" wx:key="date">
+      <!-- 日期标题 -->
+      <view class="day-header">
+        <text class="day-date">{{item.dateLabel}}</text>
+        <text class="day-summary">
+          <text wx:if="{{item.dayIncome > 0}}" class="day-income">收 {{item.dayIncome}}</text>
+          <text wx:if="{{item.dayExpense > 0}}" class="day-expense">支 {{item.dayExpense}}</text>
+        </text>
+      </view>
+
+      <!-- 账单条目 -->
+      <view
+        class="bill-item card"
+        wx:for="{{item.bills}}"
+        wx:for-item="bill"
+        wx:key="_id"
+        bindlongpress="onLongPressDelete"
+        data-id="{{bill._id}}"
+      >
+        <view class="bill-left">
+          <text class="bill-icon">{{bill.icon}}</text>
+          <view class="bill-info">
+            <text class="bill-category">{{bill.category}}</text>
+            <text class="bill-note" wx:if="{{bill.note}}">{{bill.note}}</text>
+          </view>
+        </view>
+        <text class="bill-amount {{bill.type === 'income' ? 'income' : 'expense'}}">
+          {{bill.type === 'income' ? '+' : '-'}}{{bill.amount}}
+        </text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <empty-state
+    wx:if="{{!loading && groupedBills.length === 0}}"
+    icon="📝"
+    text="本月还没有账单哦"
+    showAction="{{true}}"
+    actionText="记一笔"
+    bind:action="goAdd"
+  />
+
+  <!-- 浮动按钮：记一笔 -->
+  <view class="fab-btn" bindtap="goAdd">
+    <text class="fab-text">+</text>
+  </view>
+</view>

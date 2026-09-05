@@ -1,0 +1,72 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/bookkeeping/index",
+    "pages/bookkeeping/add",
+    "pages/bookkeeping/stats",
+    "pages/habit/index",
+    "pages/habit/add",
+    "pages/habit/calendar",
+    "pages/random/index",
+    "pages/random/food/index",
+    "pages/random/decision/index",
+    "pages/random/number/index",
+    "pages/random/group/index",
+    "pages/random/drink/index",
+    "pages/toolbox/index",
+    "pages/toolbox/list/index",
+    "pages/toolbox/compress/index",
+    "pages/toolbox/screenshot/index",
+    "pages/toolbox/image-compress/index",
+    "pages/toolbox/unwatermark/index"
+  ],
+  "window": {
+    "backgroundColor": "#F4F6F9",
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#3E86E0",
+    "navigationBarTitleText": "生活小工具",
+    "navigationBarTextStyle": "white"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#3E86E0",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "images/tabbar/home_normal.png",
+        "selectedIconPath": "images/tabbar/home_active.png"
+      },
+      {
+        "pagePath": "pages/bookkeeping/index",
+        "text": "记账",
+        "iconPath": "images/tabbar/wallet_normal.png",
+        "selectedIconPath": "images/tabbar/wallet_active.png"
+      },
+      {
+        "pagePath": "pages/habit/index",
+        "text": "习惯",
+        "iconPath": "images/tabbar/check_normal.png",
+        "selectedIconPath": "images/tabbar/check_active.png"
+      },
+      {
+        "pagePath": "pages/toolbox/index",
+        "text": "工具箱",
+        "iconPath": "images/tabbar/toolbox_normal.png",
+        "selectedIconPath": "images/tabbar/toolbox_active.png"
+      }
+    ]
+  },
+  "sitemapLocation": "sitemap.json",
+  "style": "v2",
+  "requiredPrivateInfos": [
+    "getFuzzyLocation"
+  ],
+  "permission": {
+    "scope.userFuzzyLocation": {
+      "desc": "用于获取当地天气和查找附近的奶茶品牌门店"
+    }
+  }
+}

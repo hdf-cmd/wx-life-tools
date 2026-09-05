@@ -1,0 +1,68 @@
+/* pages/toolbox/unwatermark/index.wxss */
+@import "../common.wxss";
+
+.link-input {
+  width: 100%;
+  min-height: 120rpx;
+  background: #F5F5F5;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  font-size: 26rpx;
+  color: #333;
+  box-sizing: border-box;
+  word-break: break-all;
+}
+
+.btn-row {
+  display: flex;
+  align-items: center;
+  margin-top: 20rpx;
+}
+
+.btn-row .primary-btn {
+  margin-top: 0;
+}
+
+.flex1 {
+  flex: 1;
+}
+
+.ghost-btn {
+  background: #FFF;
+  color: #3E86E0;
+  border: 2rpx solid #3E86E0;
+  border-radius: 44rpx;
+  padding: 20rpx 32rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  margin-right: 20rpx;
+  white-space: nowrap;
+}
+
+.use-tip {
+  font-size: 22rpx;
+  color: #AAA;
+  margin-top: 20rpx;
+  line-height: 1.6;
+}
+
+.result-desc {
+  font-size: 26rpx;
+  color: #555;
+  margin: 16rpx 0;
+  line-height: 1.5;
+  word-break: break-all;
+}
+
+/* ===== 深色模式 ===== */
+@media (prefers-color-scheme: dark) {
+  .link-input {
+    background: #2A2A2A;
+    color: #EEE;
+  }
+  .ghost-btn {
+    background: #1E1E1E;
+  }
+  .use-tip { color: #777; }
+  .result-desc { color: #BBB; }
+}

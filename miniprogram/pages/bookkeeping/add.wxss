@@ -1,0 +1,164 @@
+/* pages/bookkeeping/add.wxss */
+/* 记一笔页面样式 */
+
+.add-page {
+  padding-top: var(--spacing-md);
+}
+
+/* ===== 类型切换 ===== */
+.type-switcher {
+  display: flex;
+  background-color: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-xs);
+  margin-bottom: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.type-tab {
+  flex: 1;
+  text-align: center;
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-size: var(--font-md);
+  color: var(--color-text-secondary);
+  transition: all 0.3s;
+}
+
+.type-tab.active {
+  background-color: var(--color-primary);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ===== 金额输入 ===== */
+.amount-section {
+  display: flex;
+  align-items: center;
+  background-color: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-xl) var(--spacing-xl);
+  margin-bottom: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+  min-height: 160rpx;
+}
+
+.currency-sign {
+  font-size: 64rpx;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-right: var(--spacing-sm);
+}
+
+.amount-input {
+  flex: 1;
+  font-size: 72rpx;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1.2;
+  height: 86rpx;
+}
+
+/* ===== 分类选择 ===== */
+.category-section {
+  background-color: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.section-title {
+  font-size: var(--font-md);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-md);
+  display: block;
+}
+
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--spacing-sm);
+}
+
+.category-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--spacing-md) var(--spacing-xs);
+  border-radius: var(--radius-md);
+  border: 2rpx solid transparent;
+  transition: all 0.2s;
+}
+
+.category-item.selected {
+  border-color: var(--color-primary);
+  background-color: rgba(74, 144, 217, 0.08);
+}
+
+.category-icon {
+  font-size: 56rpx;
+  margin-bottom: var(--spacing-xs);
+}
+
+.category-name {
+  font-size: var(--font-xs);
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+.category-item.selected .category-name {
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
+/* ===== 备注输入 ===== */
+.note-section {
+  background-color: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.note-input {
+  font-size: var(--font-md);
+  color: var(--color-text-primary);
+  padding: var(--spacing-sm) 0;
+  border-bottom: 2rpx solid var(--color-border-light);
+}
+
+/* ===== 日期选择 ===== */
+.date-section {
+  background-color: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+  box-shadow: var(--shadow-sm);
+}
+
+.date-picker {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm) 0;
+}
+
+.date-text {
+  font-size: var(--font-md);
+  color: var(--color-text-primary);
+}
+
+.date-arrow {
+  font-size: var(--font-sm);
+  color: var(--color-text-placeholder);
+}
+
+/* ===== 保存按钮 ===== */
+.save-btn {
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-lg);
+  font-size: var(--font-lg);
+  border-radius: var(--radius-lg);
+}

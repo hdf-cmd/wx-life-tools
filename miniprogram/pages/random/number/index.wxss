@@ -1,0 +1,204 @@
+/* pages/random/number/index.wxss */
+/* 随机数生成器样式 */
+
+/* 结果展示区 */
+.result-area {
+  display: flex;
+  justify-content: center;
+  padding: 60rpx 0 40rpx;
+}
+
+.result-display {
+  width: 400rpx;
+  height: 200rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #00B894 0%, #00CEC9 100%);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 8rpx 32rpx rgba(0, 206, 201, 0.3);
+  transition: transform 0.1s ease;
+}
+
+.result-display.rolling {
+  animation: numberShake 0.08s infinite;
+}
+
+@keyframes numberShake {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+.result-number {
+  font-size: 80rpx;
+  font-weight: 700;
+  color: #FFFFFF;
+  text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.2);
+}
+
+/* 区块 */
+.section {
+  margin: 0 24rpx 24rpx;
+}
+
+.section-header {
+  margin-bottom: 20rpx;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+/* 范围输入行 */
+.range-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 20rpx;
+}
+
+.range-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.range-label {
+  font-size: 24rpx;
+  color: var(--color-text-secondary);
+  margin-bottom: 12rpx;
+}
+
+.range-input {
+  height: 80rpx;
+  background: var(--color-bg-hover);
+  border-radius: var(--radius-md);
+  padding: 0 24rpx;
+  font-size: 36rpx;
+  font-weight: 600;
+  text-align: center;
+}
+
+.range-separator {
+  font-size: 40rpx;
+  color: var(--color-text-secondary);
+  padding-bottom: 16rpx;
+}
+
+/* 高级设置 */
+.advanced-row {
+  display: flex;
+  align-items: center;
+  gap: 32rpx;
+  margin-top: 24rpx;
+  padding-top: 24rpx;
+  border-top: 1rpx solid var(--color-border-light);
+}
+
+.advanced-item {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.advanced-label {
+  font-size: 26rpx;
+  color: var(--color-text-secondary);
+}
+
+.advanced-input {
+  width: 100rpx;
+  height: 60rpx;
+  background: var(--color-bg-hover);
+  border-radius: var(--radius-md);
+  padding: 0 16rpx;
+  font-size: 28rpx;
+  text-align: center;
+}
+
+/* 复选框 */
+.checkbox-item {
+  padding: 8rpx 0;
+}
+
+.checkbox {
+  width: 40rpx;
+  height: 40rpx;
+  border: 2rpx solid var(--color-border);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24rpx;
+  color: #FFFFFF;
+  transition: all 0.2s ease;
+}
+
+.checkbox.checked {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+/* 操作按钮 */
+.action-btns {
+  padding: 0 40rpx 24rpx;
+}
+
+.action-btn {
+  width: 100%;
+  height: 96rpx;
+  line-height: 96rpx;
+  font-size: 34rpx;
+  font-weight: 600;
+  border-radius: var(--radius-round);
+}
+
+/* 结果网格 */
+.results-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.result-item {
+  background: linear-gradient(135deg, #00B894 0%, #00CEC9 100%);
+  color: #FFFFFF;
+  padding: 20rpx 32rpx;
+  border-radius: var(--radius-md);
+  font-size: 32rpx;
+  font-weight: 600;
+}
+
+/* 历史记录 */
+.history-clear {
+  font-size: 26rpx;
+  color: var(--color-danger);
+}
+
+.history-list {
+  margin-top: 8rpx;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid var(--color-border-light);
+}
+
+.history-item:last-child {
+  border-bottom: none;
+}
+
+.history-numbers {
+  font-size: 30rpx;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.history-range {
+  font-size: 24rpx;
+  color: var(--color-text-secondary);
+}

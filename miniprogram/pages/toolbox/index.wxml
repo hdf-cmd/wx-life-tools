@@ -1,0 +1,26 @@
+<!--pages/toolbox/index.wxml-->
+<!--工具箱一级入口 - 功能分类列表-->
+
+<view class="page-container">
+  <view class="header">
+    <text class="header-title">工具箱</text>
+    <text class="header-sub">实用媒体工具，一站式解决</text>
+  </view>
+
+  <view class="entry-list">
+    <view
+      class="entry-card"
+      wx:for="{{categories}}"
+      wx:key="type"
+      data-type="{{item.type}}"
+      bindtap="goToCategory"
+    >
+      <image class="entry-icon-img" src="/images/icons/{{item.icon}}.png" mode="aspectFit"/>
+      <view class="entry-text">
+        <text class="entry-title">{{item.title}}</text>
+        <text class="entry-desc">{{item.desc}}</text>
+      </view>
+      <text class="entry-arrow">›</text>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,25 @@
+<!--components/empty-state/empty-state.wxml-->
+<!--空状态组件 - 支持自定义 slot-->
+
+<view class="empty-state-container">
+  <!-- 图标区域：支持默认图标或自定义 slot -->
+  <view class="empty-state-icon">
+    <slot name="icon">
+      <text>{{icon}}</text>
+    </slot>
+  </view>
+  <!-- 提示文字 -->
+  <view class="empty-state-text">
+    <text>{{text}}</text>
+  </view>
+  <!-- 描述信息 slot -->
+  <slot name="desc"></slot>
+  <!-- 操作区域：内置按钮或自定义 slot -->
+  <view class="empty-state-action">
+    <slot name="action">
+      <view wx:if="{{showAction}}" class="action-btn" bindtap="onActionTap">
+        {{actionText}}
+      </view>
+    </slot>
+  </view>
+</view>

@@ -1,0 +1,90 @@
+<!--pages/habit/add.wxml-->
+<!--习惯打卡 - 添加/编辑习惯页-->
+
+<view class="add-page">
+  <!-- 习惯名称 -->
+  <view class="form-section">
+    <view class="form-label">习惯名称</view>
+    <input
+      class="form-input"
+      placeholder="输入你想养成的习惯"
+      value="{{name}}"
+      bindinput="onNameInput"
+      maxlength="20"
+    />
+  </view>
+
+  <!-- 图标选择 -->
+  <view class="form-section">
+    <view class="form-label">选择图标</view>
+    <view class="icon-preview">
+      <text class="preview-emoji">{{icon}}</text>
+    </view>
+    <view class="icon-grid">
+      <view
+        class="icon-item {{item.emoji === icon ? 'selected' : ''}}"
+        wx:for="{{iconList}}"
+        wx:key="emoji"
+        data-icon="{{item.emoji}}"
+        bindtap="onIconSelect"
+      >
+        <text class="item-emoji">{{item.emoji}}</text>
+        <text class="item-label">{{item.label}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 频率选择 -->
+  <view class="form-section">
+    <view class="form-label">打卡频率</view>
+    <view class="freq-options">
+      <view
+        class="freq-btn {{frequency === 'daily' ? 'active' : ''}}"
+        data-freq="daily"
+        bindtap="onFrequencyChange"
+      >
+        <text>每天</text>
+      </view>
+      <view
+        class="freq-btn {{frequency === 'weekly' ? 'active' : ''}}"
+        data-freq="weekly"
+        bindtap="onFrequencyChange"
+      >
+        <text>每周</text>
+      </view>
+    </view>
+
+    <!-- 每周模式 - 选择周几 -->
+    <view class="week-picker" wx:if="{{frequency === 'weekly'}}">
+      <view
+        class="week-item {{weekDays.indexOf(item.value) > -1 ? 'selected' : ''}}"
+        wx:for="{{weekOptions}}"
+        wx:key="value"
+        data-day="{{item.value}}"
+        bindtap="onWeekDayToggle"
+      >
+        <text>{{item.label}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 目标天数 -->
+  <view class="form-section">
+    <view class="form-label">目标天数（选填）</view>
+    <input
+      class="form-input"
+      type="number"
+      placeholder="设置一个目标，比如 21 天"
+      value="{{targetDays}}"
+      bindinput="onTargetInput"
+      maxlength="5"
+    />
+  </view>
+
+  <!-- 保存按钮 -->
+  <view class="save-section">
+    <button class="save-btn {{saving ? 'disabled' : ''}}" bindtap="onSave" disabled="{{saving}}">
+      {{saving ? '保存中...' : (isEdit ? '保存修改' : '添加习惯')}}
+    </button>
+  </view>
+</view>

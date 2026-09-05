@@ -1,0 +1,57 @@
+/* components/empty-state/empty-state.wxss */
+/* 空状态组件样式 - 支持多 slot 自定义 */
+
+.empty-state-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100rpx 60rpx;
+}
+
+/* 图标区域 */
+.empty-state-icon {
+  font-size: 120rpx;
+  margin-bottom: var(--spacing-lg, 32rpx);
+  opacity: 0.8;
+  line-height: 1.2;
+}
+
+/* 主提示文字 */
+.empty-state-text {
+  font-size: var(--font-md, 28rpx);
+  color: var(--color-text-placeholder, #999999);
+  text-align: center;
+  line-height: 1.6;
+}
+
+/* 描述信息区域 */
+.empty-state-desc {
+  margin-top: var(--spacing-sm, 16rpx);
+  font-size: var(--font-sm, 24rpx);
+  color: var(--color-text-disabled, #CCCCCC);
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* 操作区域 */
+.empty-state-action {
+  margin-top: var(--spacing-xl, 48rpx);
+}
+
+/* 内置操作按钮 */
+.action-btn {
+  display: inline-block;
+  padding: 20rpx 56rpx;
+  background-color: var(--color-primary, #3E86E0);
+  color: #FFFFFF;
+  font-size: var(--font-md, 28rpx);
+  font-weight: 500;
+  border-radius: var(--radius-round, 999rpx);
+  transition: opacity 0.2s ease;
+}
+
+.action-btn:active {
+  opacity: 0.75;
+  transform: scale(0.97);
+}

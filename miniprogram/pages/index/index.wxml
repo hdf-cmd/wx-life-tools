@@ -1,0 +1,59 @@
+<!--pages/index/index.wxml-->
+<!--首页 - 仪表盘式总览（设计语言 v2）-->
+
+<view class="container index-page">
+  <!-- Hero 问候区 -->
+  <view class="hero">
+    <view class="hero-top">
+      <view class="hero-greet">
+        <view class="hero-text">{{greeting}}，{{nickname}}</view>
+        <view class="hero-date">{{dateText}} · {{weekDay}}</view>
+      </view>
+      <view class="hero-weather" wx:if="{{weatherText}}">
+        <text class="hero-weather-icon">{{weatherIcon}}</text>
+        <view class="hero-weather-info">
+          <view class="hero-weather-temp">{{weatherTemp}}</view>
+          <view class="hero-weather-city">{{weatherText}}{{weatherCity ? ' · ' + weatherCity : ''}}</view>
+        </view>
+      </view>
+      <view class="hero-emoji" wx:else>{{greetEmoji}}</view>
+    </view>
+    <view class="hero-slogan">把生活过成喜欢的样子</view>
+  </view>
+
+  <!-- 实时统计 -->
+  <view class="section-title">今日概览</view>
+  <view class="stats-row">
+    <view class="stat-card" data-tab="bookkeeping" bindtap="goTab">
+      <text class="stat-value">{{stats.expense}}</text>
+      <text class="stat-unit">元</text>
+      <text class="stat-label">本月支出</text>
+    </view>
+    <view class="stat-card" data-tab="habit" bindtap="goTab">
+      <text class="stat-value">{{stats.checkin}}</text>
+      <text class="stat-label">今日打卡</text>
+    </view>
+  </view>
+
+  <!-- 功能快捷入口 -->
+  <view class="section-title">功能模块</view>
+  <view class="quick-grid">
+    <view
+      class="quick-card"
+      wx:for="{{featureCards}}"
+      wx:key="id"
+      data-tab="{{item.id}}"
+      bindtap="goTab"
+      hover-class="quick-hover"
+    >
+      <view class="quick-icon-wrap" style="background: {{item.bg}};">
+        <image class="quick-icon-img" src="/images/icons/{{item.icon}}.png" mode="aspectFit"/>
+      </view>
+      <view class="quick-title">{{item.title}}</view>
+      <view class="quick-desc">{{item.desc}}</view>
+    </view>
+  </view>
+
+  <!-- 底部提示 -->
+  <view class="footer-tip">💡 底部 Tab 可快速切换模块</view>
+</view>

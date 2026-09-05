@@ -1,0 +1,64 @@
+<!--pages/toolbox/image-compress/index.wxml-->
+<!--工具箱 - 图片压缩-->
+
+<view class="tool-page">
+  <view class="tool-header">
+    <text class="tool-header-icon">🖼️</text>
+    <text class="tool-header-title">图片压缩</text>
+    <text class="tool-header-sub">降低图片体积，最多一次选 9 张</text>
+  </view>
+
+  <!-- 选择图片：已选时显示缩略图 + 每张大小 -->
+  <view class="tool-card">
+    <view class="tool-card-title">选择图片（已选 {{images.length}} 张）</view>
+    <view class="choose-area" bindtap="chooseImages">
+      <block wx:if="{{images.length === 0}}">
+        <text class="choose-area-icon">📷</text>
+        <text class="choose-area-text">点击选择图片</text>
+      </block>
+      <block wx:else>
+        <view class="thumb-grid">
+          <view class="thumb-item" wx:for="{{images}}" wx:key="path">
+            <image src="{{item.path}}" mode="aspectFill" class="thumb-img"></image>
+            <text class="thumb-size">{{item.sizeText}}</text>
+          </view>
+        </view>
+        <text class="choose-area-text">点击重新选择</text>
+      </block>
+    </view>
+  </view>
+
+  <!-- 压缩质量 -->
+  <view class="tool-card" wx:if="{{images.length > 0}}">
+    <view class="tool-card-title">压缩质量：{{quality}}（越小体积越小）</view>
+    <slider
+      min="1"
+      max="100"
+      step="1"
+      value="{{quality}}"
+      activeColor="#3E86E0"
+      bindchange="onQualityChange"
+    />
+    <view class="primary-btn {{compressing ? 'disabled' : ''}}" bindtap="doCompress">
+      {{compressing ? '压缩中...' : '开始压缩'}}
+    </view>
+  </view>
+
+  <!-- 压缩结果列表 -->
+  <block wx:for="{{images}}" wx:key="path">
+    <view class="tool-card" wx:if="{{item.resultPath}}">
+      <image src="{{item.path}}" mode="aspectFill" style="width: 100%; height: 300rpx; border-radius: 16rpx;"></image>
+      <view class="info-row">
+        <text class="info-label">原始大小</text>
+        <text class="info-value">{{item.sizeText}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">压缩后</text>
+        <text class="info-value result-highlight">{{item.resultSizeText || '计算中'}}</text>
+      </view>
+      <view class="secondary-btn" data-idx="{{index}}" bindtap="saveOne">💾 保存到相册</view>
+    </view>
+  </block>
+
+  <view class="empty-tip" wx:if="{{images.length === 0}}">选择图片后调整质量开始压缩</view>
+</view>

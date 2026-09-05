@@ -1,0 +1,182 @@
+/* pages/bookkeeping/bookkeeping.wxss */
+/* 记账本 - 账单列表页样式 */
+
+.bookkeeping-page {
+  padding-bottom: 120rpx;
+}
+
+/* ===== 月份切换器 ===== */
+.month-switcher {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-md) 0;
+  position: relative;
+}
+
+.arrow-btn {
+  padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.arrow {
+  font-size: var(--font-sm);
+  color: var(--color-primary);
+}
+
+.month-text {
+  font-size: var(--font-xl);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0 var(--spacing-md);
+}
+
+.stats-entry {
+  position: absolute;
+  right: 0;
+  padding: var(--spacing-sm);
+}
+
+.stats-icon {
+  font-size: 48rpx;
+}
+
+/* ===== 月度汇总卡片 ===== */
+.summary-card {
+  display: flex;
+  justify-content: space-around;
+  background: var(--gradient-primary);
+  color: #fff;
+  box-shadow: 0 12rpx 32rpx rgba(62, 134, 224, 0.25);
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.summary-label {
+  font-size: var(--font-sm);
+  opacity: 0.85;
+  margin-bottom: var(--spacing-xs);
+}
+
+.summary-value {
+  font-size: var(--font-xl);
+  font-weight: 700;
+}
+
+.summary-value.income {
+  color: #B8F5B0;
+}
+
+.summary-value.expense {
+  color: #FFD6D6;
+}
+
+.summary-value.balance {
+  color: #fff;
+}
+
+/* ===== 日期分组 ===== */
+.day-group {
+  margin-bottom: var(--spacing-md);
+}
+
+.day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm) var(--spacing-xs);
+}
+
+.day-date {
+  font-size: var(--font-md);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.day-summary {
+  font-size: var(--font-sm);
+}
+
+.day-income {
+  color: var(--color-success);
+  margin-right: var(--spacing-sm);
+}
+
+.day-expense {
+  color: var(--color-danger);
+}
+
+/* ===== 账单条目 ===== */
+.bill-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md) var(--spacing-lg);
+  margin-bottom: var(--spacing-xs);
+}
+
+.bill-left {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.bill-icon {
+  font-size: 56rpx;
+  margin-right: var(--spacing-md);
+}
+
+.bill-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.bill-category {
+  font-size: var(--font-md);
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+
+.bill-note {
+  font-size: var(--font-sm);
+  color: var(--color-text-secondary);
+  margin-top: 4rpx;
+}
+
+.bill-amount {
+  font-size: var(--font-lg);
+  font-weight: 600;
+}
+
+.bill-amount.income {
+  color: var(--color-success);
+}
+
+.bill-amount.expense {
+  color: var(--color-danger);
+}
+
+/* ===== 浮动按钮 ===== */
+.fab-btn {
+  position: fixed;
+  right: 40rpx;
+  bottom: 120rpx;
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-secondary) 0%, var(--color-secondary-dark) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8rpx 24rpx rgba(255, 159, 67, 0.4);
+}
+
+.fab-text {
+  font-size: 56rpx;
+  color: #fff;
+  font-weight: 300;
+  line-height: 1;
+}

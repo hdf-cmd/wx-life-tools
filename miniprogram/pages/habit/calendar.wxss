@@ -1,0 +1,205 @@
+/* pages/habit/calendar.wxss */
+/* 习惯打卡 - 日历视图样式 */
+
+.calendar-page {
+  min-height: 100vh;
+  padding-bottom: 120rpx;
+  background: var(--color-bg-page);
+}
+
+/* ===== 习惯信息头部 ===== */
+.cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16rpx;
+  padding: 40rpx;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+  color: #fff;
+}
+
+.cal-icon {
+  font-size: 52rpx;
+}
+
+.cal-name {
+  font-size: 36rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+}
+
+/* ===== 月份切换 ===== */
+.month-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 40rpx;
+  padding: 32rpx 0;
+  background: var(--color-bg-card);
+}
+
+.month-arrow {
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #F5F5F5;
+  font-size: 24rpx;
+  color: var(--color-text-secondary);
+}
+
+.month-arrow:active {
+  background: #E8E8E8;
+}
+
+.month-text {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  min-width: 180rpx;
+  text-align: center;
+}
+
+/* ===== 星期标题 ===== */
+.week-header {
+  display: flex;
+  padding: 16rpx 12rpx;
+  background: var(--color-bg-card);
+  border-bottom: 1rpx solid var(--color-border-light);
+}
+
+.week-cell {
+  flex: 1;
+  text-align: center;
+  font-size: 24rpx;
+  color: var(--color-text-placeholder);
+  font-weight: 500;
+}
+
+/* ===== 日历网格 ===== */
+.calendar-grid {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 12rpx;
+  background: var(--color-bg-card);
+  margin: 0 16rpx;
+  border-radius: 16rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.04);
+}
+
+.cal-day {
+  width: calc(100% / 7);
+  height: 88rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.cal-day.empty {
+  visibility: hidden;
+}
+
+.day-text {
+  font-size: 28rpx;
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+
+/* 今天标记 */
+.cal-day.today .day-text {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.cal-day.today::after {
+  content: '';
+  position: absolute;
+  bottom: 8rpx;
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: var(--color-primary);
+}
+
+/* 已打卡状态 */
+.cal-day.checked {
+  background: transparent;
+}
+
+.cal-day.checked .day-text {
+  color: #fff;
+  width: 60rpx;
+  height: 60rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary);
+  border-radius: 50%;
+  font-weight: 600;
+}
+
+.check-dot {
+  position: absolute;
+  bottom: 4rpx;
+}
+
+.dot-icon {
+  font-size: 18rpx;
+  color: var(--color-success);
+  font-weight: 700;
+}
+
+/* 已打卡时隐藏底部小点（因为圆圈已够明显） */
+.cal-day.checked::after {
+  display: none;
+}
+
+/* ===== 加载状态 ===== */
+.cal-loading {
+  display: flex;
+  justify-content: center;
+  padding: 80rpx;
+  color: var(--color-text-placeholder);
+  font-size: 28rpx;
+}
+
+/* ===== 底部统计 ===== */
+.stats-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24rpx;
+  margin: 32rpx 16rpx;
+  padding: 32rpx;
+  background: var(--color-bg-card);
+  border-radius: 16rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.04);
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.stat-num {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.stat-label {
+  font-size: 22rpx;
+  color: var(--color-text-placeholder);
+}
+
+.stat-divider {
+  font-size: 32rpx;
+  color: var(--color-border);
+  margin: 0 8rpx;
+}

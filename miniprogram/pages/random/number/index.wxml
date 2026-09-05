@@ -1,0 +1,77 @@
+<!--pages/random/number/index.wxml-->
+<!--随机数生成器-->
+
+<view class="container">
+  <!-- 结果展示区 -->
+  <view class="result-area">
+    <view class="result-display {{isRolling ? 'rolling' : ''}}">
+      <text class="result-number">{{displayNumber}}</text>
+    </view>
+  </view>
+
+  <!-- 设置区域 -->
+  <view class="section card">
+    <view class="section-header">
+      <text class="section-title">设置范围</text>
+    </view>
+
+    <view class="range-row">
+      <view class="range-item">
+        <text class="range-label">最小值</text>
+        <input class="range-input" type="number" placeholder="0" value="{{minValue}}" bindinput="onMinInput" />
+      </view>
+      <view class="range-separator">~</view>
+      <view class="range-item">
+        <text class="range-label">最大值</text>
+        <input class="range-input" type="number" placeholder="100" value="{{maxValue}}" bindinput="onMaxInput" />
+      </view>
+    </view>
+
+    <!-- 高级设置 -->
+    <view class="advanced-row">
+      <view class="advanced-item">
+        <text class="advanced-label">生成个数</text>
+        <input class="advanced-input" type="number" placeholder="1" value="{{count}}" bindinput="onCountInput" />
+      </view>
+      <view class="advanced-item checkbox-item" bindtap="toggleAllowRepeat">
+        <view class="checkbox {{allowRepeat ? 'checked' : ''}}">
+          <text wx:if="{{allowRepeat}}">✓</text>
+        </view>
+        <text class="advanced-label">允许重复</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 生成按钮 -->
+  <view class="action-btns">
+    <button class="btn-primary action-btn" bindtap="generate" disabled="{{isRolling}}">
+      {{isRolling ? '生成中...' : '生成随机数'}}
+    </button>
+  </view>
+
+  <!-- 结果列表（多个时） -->
+  <view class="section card" wx:if="{{results.length > 1}}">
+    <view class="section-header">
+      <text class="section-title">生成结果</text>
+    </view>
+    <view class="results-grid">
+      <view class="result-item" wx:for="{{results}}" wx:key="index">
+        <text>{{item}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 历史记录 -->
+  <view class="section card" wx:if="{{history.length > 0}}">
+    <view class="section-header flex-between">
+      <text class="section-title">历史记录</text>
+      <text class="history-clear" bindtap="clearHistory">清空</text>
+    </view>
+    <view class="history-list">
+      <view class="history-item" wx:for="{{history}}" wx:key="index">
+        <text class="history-numbers">{{item.numbers}}</text>
+        <text class="history-range">[{{item.min}} ~ {{item.max}}]</text>
+      </view>
+    </view>
+  </view>
+</view>

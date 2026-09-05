@@ -1,0 +1,59 @@
+<!--pages/toolbox/screenshot/index.wxml-->
+<!--工具箱 - 视频截图（canvas 方案）-->
+
+<view class="tool-page">
+  <view class="tool-header">
+    <text class="tool-header-icon">📸</text>
+    <text class="tool-header-title">视频截图</text>
+    <text class="tool-header-sub">提取视频任意时刻的画面</text>
+  </view>
+
+  <!-- 选择视频 -->
+  <view class="tool-card">
+    <view class="tool-card-title">选择视频</view>
+    <view class="choose-area" bindtap="chooseVideo">
+      <text class="choose-area-icon">🎬</text>
+      <text class="choose-area-text">{{videoPath ? '已选择（点击重新选择）' : '点击选择视频'}}</text>
+    </view>
+    <video
+      id="screenshot-video"
+      wx:if="{{videoPath}}"
+      src="{{videoPath}}"
+      style="width: 100%; margin-top: 24rpx; border-radius: 16rpx;"
+      controls
+      bindloadedmetadata="onVideoLoaded"
+    ></video>
+  </view>
+
+  <!-- 选择时间点 -->
+  <view class="tool-card" wx:if="{{videoPath}}">
+    <view class="tool-card-title">选择时间点：{{timeText}} / {{duration}}s</view>
+    <slider
+      min="0"
+      max="{{duration}}"
+      step="1"
+      value="{{currentTime}}"
+      activeColor="#3E86E0"
+      bindchange="onTimeChange"
+    />
+    <view class="primary-btn {{extracting ? 'disabled' : ''}}" bindtap="extractFrame">
+      {{extracting ? '提取中...' : '📷 提取画面'}}
+    </view>
+  </view>
+
+  <!-- 截图结果 -->
+  <view class="tool-card" wx:if="{{frameImage}}">
+    <view class="tool-card-title">截图预览</view>
+    <image src="{{frameImage}}" mode="widthFix" style="width: 100%; border-radius: 16rpx;"></image>
+    <view class="secondary-btn" bindtap="saveToAlbum">💾 保存到相册</view>
+  </view>
+
+  <view class="empty-tip" wx:if="{{!videoPath}}">选择视频后拖动滑块选择截图时间点</view>
+
+  <!-- 离屏画布：用于截取视频画面（移出可视区域，不可设为 display:none） -->
+  <canvas
+    type="2d"
+    id="frame-canvas"
+    style="position: fixed; left: -9999px; top: -9999px; width: 300px; height: 150px;"
+  ></canvas>
+</view>

@@ -1,0 +1,62 @@
+<!--pages/toolbox/compress/index.wxml-->
+<!--工具箱 - 视频压缩-->
+
+<view class="tool-page">
+  <view class="tool-header">
+    <text class="tool-header-icon">🗜️</text>
+    <text class="tool-header-title">视频压缩</text>
+    <text class="tool-header-sub">降低视频体积，方便分享传输</text>
+  </view>
+
+  <!-- 选择视频 -->
+  <view class="tool-card">
+    <view class="tool-card-title">选择视频</view>
+    <view class="choose-area" bindtap="chooseVideo">
+      <text class="choose-area-icon">🎬</text>
+      <text class="choose-area-text">{{videoPath ? '已选择（点击重新选择）' : '点击选择视频'}}</text>
+      <text class="choose-area-text" wx:if="{{videoPath}}">大小：{{videoSizeText}}</text>
+    </view>
+    <video
+      wx:if="{{videoPath}}"
+      src="{{videoPath}}"
+      style="width: 100%; margin-top: 24rpx; border-radius: 16rpx;"
+      controls
+    ></video>
+  </view>
+
+  <!-- 压缩选项 -->
+  <view class="tool-card">
+    <view class="tool-card-title">压缩选项</view>
+    <view class="option-row">
+      <text class="option-label">画质</text>
+      <picker mode="selector" range="{{qualityList}}" value="{{qualityIndex}}" bindchange="onQualityChange">
+        <view class="picker-box">{{qualityList[qualityIndex]}} ▾</view>
+      </picker>
+    </view>
+    <view class="option-row">
+      <text class="option-label">分辨率</text>
+      <picker mode="selector" range="{{scaleList}}" value="{{scaleIndex}}" bindchange="onScaleChange">
+        <view class="picker-box">{{scaleList[scaleIndex]}} ▾</view>
+      </picker>
+    </view>
+  </view>
+
+  <!-- 压缩按钮 -->
+  <view class="primary-btn {{videoPath && !compressing ? '' : 'disabled'}}" bindtap="doCompress">
+    {{compressing ? '压缩中...' : '开始压缩'}}
+  </view>
+
+  <!-- 压缩结果 -->
+  <view class="tool-card" wx:if="{{resultPath}}" style="margin-top: 24rpx;">
+    <view class="tool-card-title">压缩结果</view>
+    <view class="info-row">
+      <text class="info-label">原始大小</text>
+      <text class="info-value">{{videoSizeText}}</text>
+    </view>
+    <view class="info-row">
+      <text class="info-label">压缩后</text>
+      <text class="info-value result-highlight">{{resultSizeText}}</text>
+    </view>
+    <view class="secondary-btn" bindtap="saveToAlbum">💾 保存到相册</view>
+  </view>
+</view>

@@ -1,0 +1,31 @@
+<!--pages/random/index.wxml-->
+<!--随机模块主页 - 双入口卡片布局-->
+
+<view class="page-container">
+  <view class="header">
+    <text class="header-title">随机选一个</text>
+    <text class="header-sub">纠结的时候，让命运来决定</text>
+  </view>
+
+  <view class="entry-list">
+    <!-- 今天吃什么 -->
+    <view class="entry-card" bindtap="goToFood">
+      <text class="entry-icon">🍜</text>
+      <view class="entry-text">
+        <text class="entry-title">今天吃什么？</text>
+        <text class="entry-desc">美食菜品随机选</text>
+      </view>
+      <text class="entry-arrow">›</text>
+    </view>
+
+    <!-- 今天喝什么 -->
+    <view class="entry-card" bindtap="goToDrink">
+      <text class="entry-icon">🧋</text>
+      <view class="entry-text">
+        <text class="entry-title">今天喝什么？</text>
+        <text class="entry-desc">奶茶饮品随机选</text>
+      </view>
+      <text class="entry-arrow">›</text>
+    </view>
+  </view>
+</view>

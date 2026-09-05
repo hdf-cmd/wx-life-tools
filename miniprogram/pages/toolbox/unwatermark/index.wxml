@@ -1,0 +1,46 @@
+<!--pages/toolbox/unwatermark/index.wxml-->
+<!--工具箱 - 去水印-->
+
+<view class="tool-page">
+  <view class="tool-header">
+    <text class="tool-header-icon">🎬</text>
+    <text class="tool-header-title">去水印</text>
+    <text class="tool-header-sub">抖音 / 皮皮虾 / 小红书 视频无水印下载</text>
+  </view>
+
+  <!-- 链接输入 -->
+  <view class="tool-card">
+    <view class="tool-card-title">粘贴视频分享链接</view>
+    <textarea
+      class="link-input"
+      placeholder="在 App 里点分享→复制链接，粘贴到这里（整段分享文案也可以）"
+      value="{{link}}"
+      bindinput="onInput"
+      auto-height
+    ></textarea>
+    <view class="btn-row">
+      <view class="ghost-btn" bindtap="onPaste">📋 粘贴</view>
+      <view class="primary-btn flex1 {{parsing ? 'disabled' : ''}}" bindtap="doParse">
+        {{parsing ? '解析中...' : '开始解析'}}
+      </view>
+    </view>
+    <view class="use-tip">📖 用法：打开抖音/皮皮虾/小红书 → 找到视频 → 分享 → 复制链接 → 回到这里粘贴解析</view>
+  </view>
+
+  <!-- 解析结果 -->
+  <view class="tool-card" wx:if="{{result}}">
+    <view class="tool-card-title">解析成功（{{result.sizeMB}} MB）</view>
+    <video
+      wx:if="{{result.tempUrl}}"
+      src="{{result.tempUrl}}"
+      style="width: 100%; border-radius: 16rpx;"
+      controls
+    ></video>
+    <view class="result-desc" wx:if="{{result.desc}}">{{result.desc}}</view>
+    <view class="primary-btn {{saving ? 'disabled' : ''}}" bindtap="saveVideo">
+      {{saving ? '保存中...' : '💾 保存到相册'}}
+    </view>
+  </view>
+
+  <view class="empty-tip" wx:if="{{!result}}">仅供个人学习收藏使用，请尊重原作者版权</view>
+</view>

@@ -1,0 +1,66 @@
+<!--pages/random/decision/index.wxml-->
+<!--随机决策器-->
+
+<view class="page-container">
+  <!-- 结果展示区 -->
+  <view class="result-area" wx:if="{{result}}">
+    <view class="result-label">决策结果</view>
+    <view class="result-box">
+      <text class="result-text">{{result}}</text>
+    </view>
+    <view class="result-emoji">✨</view>
+  </view>
+
+  <!-- 选项输入区 -->
+  <view class="section card">
+    <view class="section-header">
+      <text class="section-title">输入选项</text>
+      <text class="section-desc">每行一个选项</text>
+    </view>
+
+    <textarea class="options-input" placeholder="输入选项，每行一个&#10;例如：&#10;选项A&#10;选项B&#10;选项C" value="{{optionsText}}" bindinput="onOptionsInput" maxlength="-1" auto-height></textarea>
+  </view>
+
+  <!-- 操作按钮 -->
+  <view class="action-btns">
+    <button class="btn-primary action-btn" bindtap="startDecision" disabled="{{isRolling || options.length < 2}}">
+      {{isRolling ? '决策中...' : '开始决策'}}
+    </button>
+  </view>
+
+  <!-- 滚动展示区 -->
+  <view class="rolling-area" wx:if="{{isRolling}}">
+    <view class="rolling-item {{highlightIndex === index ? 'active' : ''}}" wx:for="{{options}}" wx:key="index">
+      <text>{{item}}</text>
+    </view>
+  </view>
+
+  <!-- 保存决策组 -->
+  <view class="section card" wx:if="{{options.length >= 2}}">
+    <view class="section-header flex-between">
+      <text class="section-title">保存决策组</text>
+    </view>
+
+    <view class="save-row">
+      <input class="save-input" placeholder="给这个决策组起个名字" value="{{groupName}}" bindinput="onGroupNameInput" />
+      <button class="btn-save" bindtap="saveGroup">保存</button>
+    </view>
+  </view>
+
+  <!-- 已保存的决策组 -->
+  <view class="section card" wx:if="{{savedGroups.length > 0}}">
+    <view class="section-header">
+      <text class="section-title">我的决策组</text>
+    </view>
+
+    <view class="group-list">
+      <view class="group-item" wx:for="{{savedGroups}}" wx:key="name">
+        <view class="group-info" bindtap="loadGroup" data-name="{{item.name}}">
+          <text class="group-name">{{item.name}}</text>
+          <text class="group-options">{{item.options.length}} 个选项</text>
+        </view>
+        <text class="group-delete" catchtap="deleteGroup" data-name="{{item.name}}">删除</text>
+      </view>
+    </view>
+  </view>
+</view>

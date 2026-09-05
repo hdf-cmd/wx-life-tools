@@ -1,0 +1,80 @@
+/* pages/random/index.wxss */
+/* 随机模块主页 - 双入口卡片布局 */
+
+.page-container {
+  min-height: 100vh;
+  padding: 40rpx 36rpx 60rpx;
+  background: #FAFAFA;
+  box-sizing: border-box;
+}
+
+.header {
+  text-align: center;
+  padding: 40rpx 0 48rpx;
+}
+
+.header-title {
+  display: block;
+  font-size: 44rpx;
+  font-weight: 700;
+  color: #222;
+  margin-bottom: 12rpx;
+}
+
+.header-sub {
+  display: block;
+  font-size: 26rpx;
+  color: #AAA;
+}
+
+.entry-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.entry-card {
+  display: flex;
+  align-items: center;
+  background: #FFF;
+  border-radius: 28rpx;
+  padding: 36rpx 28rpx;
+  border: 2rpx solid #F0F0F0;
+  box-shadow: 0 4rpx 20rpx rgba(0,0,0,0.04);
+  transition: all 0.2s;
+}
+
+.entry-card:active {
+  transform: scale(0.98);
+  border-color: #FF6B6B;
+  background: #FFF5F5;
+}
+
+.entry-icon {
+  font-size: 72rpx;
+  margin-right: 24rpx;
+}
+
+.entry-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.entry-title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #222;
+  margin-bottom: 6rpx;
+}
+
+.entry-desc {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.entry-arrow {
+  font-size: 48rpx;
+  color: #FF6B6B;
+  font-weight: 300;
+}

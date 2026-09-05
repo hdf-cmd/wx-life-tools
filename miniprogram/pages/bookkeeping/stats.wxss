@@ -1,0 +1,156 @@
+/* pages/bookkeeping/stats.wxss */
+/* 统计页面样式 */
+
+.stats-page {
+  padding-bottom: var(--spacing-xl);
+}
+
+/* ===== 月份切换器 ===== */
+.month-switcher {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-md) 0;
+}
+
+.arrow-btn {
+  padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.arrow {
+  font-size: var(--font-sm);
+  color: var(--color-primary);
+}
+
+.month-text {
+  font-size: var(--font-xl);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0 var(--spacing-md);
+}
+
+/* ===== 汇总卡片 ===== */
+.summary-card {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+  color: #fff;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+
+.summary-divider {
+  width: 2rpx;
+  height: 60rpx;
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.summary-label {
+  font-size: var(--font-sm);
+  opacity: 0.85;
+  margin-bottom: var(--spacing-xs);
+}
+
+.summary-value {
+  font-size: var(--font-lg);
+  font-weight: 700;
+}
+
+.summary-value.income {
+  color: #B8F5B0;
+}
+
+.summary-value.expense {
+  color: #FFD6D6;
+}
+
+.summary-value.balance {
+  color: #fff;
+}
+
+/* ===== 分类统计 ===== */
+.category-stats {
+  margin-top: var(--spacing-lg);
+}
+
+.section-title {
+  font-size: var(--font-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-lg);
+  display: block;
+}
+
+.category-item {
+  margin-bottom: var(--spacing-lg);
+}
+
+.category-item:last-child {
+  margin-bottom: 0;
+}
+
+.category-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-sm);
+}
+
+.category-left {
+  display: flex;
+  align-items: center;
+}
+
+.category-icon {
+  font-size: 40rpx;
+  margin-right: var(--spacing-sm);
+}
+
+.category-name {
+  font-size: var(--font-md);
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+
+.category-right {
+  display: flex;
+  align-items: center;
+}
+
+.category-amount {
+  font-size: var(--font-md);
+  color: var(--color-text-primary);
+  font-weight: 600;
+  margin-right: var(--spacing-md);
+}
+
+.category-percent {
+  font-size: var(--font-sm);
+  color: var(--color-text-secondary);
+  min-width: 80rpx;
+  text-align: right;
+}
+
+/* ===== 进度条 ===== */
+.progress-bar {
+  height: 12rpx;
+  background-color: var(--color-border-light);
+  border-radius: var(--radius-round);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+  border-radius: var(--radius-round);
+  transition: width 0.3s ease;
+}

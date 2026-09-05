@@ -1,0 +1,38 @@
+/* pages/toolbox/image-compress/index.wxss */
+@import "../common.wxss";
+
+/* 已选图片缩略图网格 */
+.thumb-grid {
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+  margin-bottom: 8rpx;
+}
+
+.thumb-item {
+  width: 200rpx;
+  margin: 0 16rpx 16rpx 0;
+}
+
+.thumb-img {
+  width: 200rpx;
+  height: 200rpx;
+  border-radius: 12rpx;
+  display: block;
+  background: #F0F0F0;
+}
+
+.thumb-size {
+  display: block;
+  font-size: 22rpx;
+  color: #999;
+  text-align: center;
+  margin-top: 6rpx;
+}
+
+
+/* ===== 深色模式 ===== */
+@media (prefers-color-scheme: dark) {
+  .thumb-img { background: #2A2A2A; }
+  .thumb-size { color: #777; }
+}
