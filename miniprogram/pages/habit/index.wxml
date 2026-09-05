@@ -27,10 +27,8 @@
     <text class="encourage-text">{{encourageText}}</text>
   </view>
 
-  <!-- 加载状态 -->
-  <view class="loading-wrap" wx:if="{{loading}}">
-    <text class="loading-text">加载中...</text>
-  </view>
+  <!-- 加载骨架屏 -->
+  <skeleton wx:if="{{loading}}" rows="{{4}}" avatar="{{true}}" />
 
   <!-- 习惯列表 -->
   <view class="habit-list" wx:elif="{{habitList.length > 0}}">

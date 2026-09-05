@@ -42,6 +42,13 @@ Page({
         bg: 'linear-gradient(135deg, #E4F7E6 0%, #CFF0D3 100%)'
       },
       {
+        id: 'random',
+        icon: 'card-random',
+        title: '随机一下',
+        desc: '吃什么喝什么，交给命运',
+        bg: 'linear-gradient(135deg, #FFEBE8 0%, #FFD9D3 100%)'
+      },
+      {
         id: 'toolbox',
         icon: 'card-toolbox',
         title: '工具箱',
@@ -56,6 +63,44 @@ Page({
     this.updateNickname()
     this.loadStats()
     this.loadWeather()
+  },
+
+  onHide: function () {
+    this.clearAnimations()
+  },
+
+  onUnload: function () {
+    this.clearAnimations()
+  },
+
+  /**
+   * 数字滚动动效：从 0 缓动到目标值（约 600ms，三次方缓出）
+   */
+  animateStat: function (key, target, decimals) {
+    const that = this
+    if (!this._animTimers) this._animTimers = {}
+    if (this._animTimers[key]) clearInterval(this._animTimers[key])
+
+    const duration = 600
+    const t0 = Date.now()
+    const timer = setInterval(function () {
+      const p = Math.min((Date.now() - t0) / duration, 1)
+      const eased = 1 - Math.pow(1 - p, 3)
+      const val = target * eased
+      const patch = {}
+      patch['stats.' + key] = decimals > 0 ? val.toFixed(decimals) : String(Math.round(val))
+      that.setData(patch)
+      if (p >= 1) clearInterval(timer)
+    }, 30)
+    this._animTimers[key] = timer
+  },
+
+  clearAnimations: function () {
+    if (this._animTimers) {
+      const that = this
+      Object.keys(this._animTimers).forEach(function (k) { clearInterval(that._animTimers[k]) })
+      this._animTimers = {}
+    }
   },
 
   /**
@@ -118,7 +163,7 @@ Page({
       data: { action: 'stats' }
     }).then(res => {
       if (res.result.code === 0) {
-        this.setData({ 'stats.expense': res.result.data.totalExpense.toFixed(2) })
+        this.animateStat('expense', res.result.data.totalExpense, 2)
       }
     }).catch(() => {})
 
@@ -132,10 +177,8 @@ Page({
         const list = res.result.data || []
         const done = list.filter(h => h.checkedIn).length
         const maxStreak = list.reduce((m, h) => Math.max(m, h.streak || 0), 0)
-        this.setData({
-          'stats.checkin': `${done}/${list.length}`,
-          'stats.streak': String(maxStreak)
-        })
+        this.setData({ 'stats.checkin': `${done}/${list.length}` })
+        this.animateStat('streak', maxStreak, 0)
       }
     }).catch(() => {})
   },
@@ -200,17 +243,25 @@ Page({
    */
   goTab: function (e) {
     const tab = e.currentTarget.dataset.tab
-    const pathMap = {
+    // tabBar 页面用 switchTab，普通页面用 navigateTo
+    const switchMap = {
       bookkeeping: '/pages/bookkeeping/index',
       habit: '/pages/habit/index',
       toolbox: '/pages/toolbox/index'
     }
-    wx.switchTab({
-      url: pathMap[tab],
-      fail: () => {
-        console.error('跳转失败:', tab)
-      }
-    })
+    const navMap = {
+      random: '/pages/random/index'
+    }
+    if (switchMap[tab]) {
+      wx.switchTab({
+        url: switchMap[tab],
+        fail: () => {
+          console.error('跳转失败:', tab)
+        }
+      })
+    } else if (navMap[tab]) {
+      wx.navigateTo({ url: navMap[tab] })
+    }
   },
 
   /**

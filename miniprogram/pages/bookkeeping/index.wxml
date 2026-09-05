@@ -49,8 +49,11 @@
     </view>
   </view>
 
+  <!-- 加载骨架屏 -->
+  <skeleton wx:if="{{loading}}" rows="{{5}}" avatar="{{true}}" />
+
   <!-- 账单列表 -->
-  <view class="bill-list" wx:if="{{groupedBills.length > 0}}">
+  <view class="bill-list" wx:if="{{!loading && groupedBills.length > 0}}">
     <view class="day-group" wx:for="{{groupedBills}}" wx:key="date">
       <!-- 日期标题 -->
       <view class="day-header">

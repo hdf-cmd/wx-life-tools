@@ -27,7 +27,7 @@
 │   └── images/                 # tabbar 图标、奶茶品牌 logo
 └── cloudfunctions/             # 云函数根目录（project.config.json 已声明）
     ├── login/                  # 获取 openid
-    ├── bookkeeping/            # 记账 CRUD（accounts 集合）
+    ├── bookkeeping/            # 记账 CRUD + 编辑/分页/预算/趋势/导出（accounts + budgets 集合）
     ├── habit/                  # 习惯管理（habits + habit_logs 集合）
     ├── nearby/                 # 附近门店搜索 + 逆地理 + 实况天气（高德 API，依赖 AMAP_KEY 环境变量）
     └── unwatermark/            # 去水印（详见第六节）
@@ -42,6 +42,7 @@
 | `accounts` | 记账记录 | 核心集合，必存在 |
 | `habits` | 习惯定义 | 核心集合，必存在 |
 | `habit_logs` | 打卡记录 | **按需创建**，首次打卡前不存在 |
+| `budgets` | 月度预算 | **按需创建**（bookkeeping 内部 try-catch 建表），`{_openid, month, amount}`，amount=0 表示清除 |
 | `unwatermark/*` | 云存储目录 | 去水印转存的视频文件（无自动清理机制，需在云开发控制台手动管理） |
 
 ## 四、硬性开发规范（违反会直接出 Bug）

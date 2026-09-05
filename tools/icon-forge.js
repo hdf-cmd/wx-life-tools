@@ -83,6 +83,7 @@ const JOBS = [
   ['card-bookkeeping.png', 'coin', BLUE, true, 96, OUT.icons],
   ['card-habit.png', 'check', GREEN, true, 96, OUT.icons],
   ['card-toolbox.png', 'toolbox', PURPLE, true, 96, OUT.icons],
+  ['card-random.png', 'dice', '#E85D75', true, 96, OUT.icons],
   // 工具箱分类
   ['cat-video.png', 'video', '#E8615A', true, 96, OUT.icons],
   ['cat-edit.png', 'edit', '#5B8DEF', true, 96, OUT.icons],
