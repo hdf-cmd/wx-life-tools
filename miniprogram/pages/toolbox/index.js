@@ -16,5 +16,22 @@ Page({
     wx.navigateTo({
       url: '/pages/toolbox/list/index?type=' + e.currentTarget.dataset.type
     })
+  },
+
+  /**
+   * 分享给好友
+   */
+  onShareAppMessage: function () {
+    return {
+      title: '实用小工具箱：压缩 / 截图 / 去水印',
+      path: '/pages/toolbox/index'
+    }
+  },
+
+  /**
+   * 分享到朋友圈
+   */
+  onShareTimeline: function () {
+    return { title: '实用小工具箱：压缩 / 截图 / 去水印' }
   }
 })

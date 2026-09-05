@@ -211,5 +211,22 @@ Page({
       clearTimeout(this._timer)
       this._timer = null
     }
+  },
+
+  /**
+   * 分享给好友
+   */
+  onShareAppMessage: function () {
+    return {
+      title: '抽签分组，一秒定顺序',
+      path: '/pages/random/group/index'
+    }
+  },
+
+  /**
+   * 分享到朋友圈
+   */
+  onShareTimeline: function () {
+    return { title: '抽签分组，一秒定顺序' }
   }
 })

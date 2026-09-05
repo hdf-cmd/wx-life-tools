@@ -528,5 +528,24 @@ Page({
       locationText: '',
       locationFallback: false
     })
+  },
+
+  /**
+   * 分享给好友（带抽中的饮品名）
+   */
+  onShareAppMessage: function () {
+    const last = this.data.lastDrink
+    const name = last && last.name
+    return {
+      title: name ? '我抽到了「' + name + '」，你也来一杯' : '今天喝什么？282 款饮品随机选',
+      path: '/pages/random/drink/index'
+    }
+  },
+
+  /**
+   * 分享到朋友圈
+   */
+  onShareTimeline: function () {
+    return { title: '今天喝什么？282 款饮品随机选' }
   }
 })

@@ -231,5 +231,22 @@ Page({
         util.showToast('网络错误，请重试')
       }
     })
+  },
+
+  /**
+   * 分享给好友
+   */
+  onShareAppMessage: function () {
+    return {
+      title: '我的月度账单统计',
+      path: '/pages/bookkeeping/stats'
+    }
+  },
+
+  /**
+   * 分享到朋友圈
+   */
+  onShareTimeline: function () {
+    return { title: '我的月度账单统计' }
   }
 })

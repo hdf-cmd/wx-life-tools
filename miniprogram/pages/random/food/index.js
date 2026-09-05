@@ -287,5 +287,22 @@ Page({
         }
       }
     })
+  },
+
+  /**
+   * 分享给好友
+   */
+  onShareAppMessage: function () {
+    return {
+      title: '今天吃什么？让它替你决定',
+      path: '/pages/random/food/index'
+    }
+  },
+
+  /**
+   * 分享到朋友圈
+   */
+  onShareTimeline: function () {
+    return { title: '今天吃什么？让它替你决定' }
   }
 })

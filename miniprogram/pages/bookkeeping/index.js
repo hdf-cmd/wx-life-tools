@@ -413,5 +413,22 @@ Page({
     wx.navigateTo({
       url: '/pages/bookkeeping/stats?month=' + this.data.monthStr
     })
+  },
+
+  /**
+   * 分享给好友
+   */
+  onShareAppMessage: function () {
+    return {
+      title: '我在用这个小程序记账，超省心',
+      path: '/pages/bookkeeping/index'
+    }
+  },
+
+  /**
+   * 分享到朋友圈
+   */
+  onShareTimeline: function () {
+    return { title: '我在用这个小程序记账，超省心' }
   }
 })

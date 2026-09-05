@@ -13,6 +13,14 @@
     </view>
   </view>
 
+  <!-- 打卡工具条：最高连续 + 海报入口 -->
+  <view class="habit-toolbar" wx:if="{{habitList.length > 0}}">
+    <text class="toolbar-streak">🔥 最高连续 {{maxStreak}} 天</text>
+    <view class="toolbar-poster" bindtap="generatePoster" hover-class="toolbar-hover">
+      <text class="toolbar-poster-text">{{posting ? '生成中...' : '🖼 生成打卡海报'}}</text>
+    </view>
+  </view>
+
   <!-- 打卡成功鼓励提示 -->
   <view class="encourage-bar {{showEncourage ? 'show' : ''}}">
     <text class="encourage-icon">🎉</text>
@@ -96,4 +104,7 @@
       </view>
     </view>
   </view>
+
+  <!-- 打卡海报画布（离屏隐藏，仅生成图片用） -->
+  <canvas type="2d" id="posterCanvas" class="poster-canvas"></canvas>
 </view>

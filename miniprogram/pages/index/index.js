@@ -18,10 +18,11 @@ Page({
     weatherText: '',
     weatherCity: '',
 
-    // 实时统计（本月支出 / 今日打卡）
+    // 实时统计（本月支出 / 今日打卡 / 最高连续天数）
     stats: {
       expense: '--',
-      checkin: '--'
+      checkin: '--',
+      streak: '0'
     },
 
     // 功能快捷入口
@@ -121,7 +122,7 @@ Page({
       }
     }).catch(() => {})
 
-    // 今日打卡进度
+    // 今日打卡进度 + 全部习惯中的最高连续天数
     wx.cloud.callFunction({
       followSystem: true,
       name: 'habit',
@@ -130,7 +131,11 @@ Page({
       if (res.result.code === 0) {
         const list = res.result.data || []
         const done = list.filter(h => h.checkedIn).length
-        this.setData({ 'stats.checkin': `${done}/${list.length}` })
+        const maxStreak = list.reduce((m, h) => Math.max(m, h.streak || 0), 0)
+        this.setData({
+          'stats.checkin': `${done}/${list.length}`,
+          'stats.streak': String(maxStreak)
+        })
       }
     }).catch(() => {})
   },
@@ -206,5 +211,22 @@ Page({
         console.error('跳转失败:', tab)
       }
     })
+  },
+
+  /**
+   * 分享给好友
+   */
+  onShareAppMessage: function () {
+    return {
+      title: '生活小工具 · 记账、打卡、随机选，一个就够',
+      path: '/pages/index/index'
+    }
+  },
+
+  /**
+   * 分享到朋友圈
+   */
+  onShareTimeline: function () {
+    return { title: '生活小工具 · 记账、打卡、随机选，一个就够' }
   }
 })

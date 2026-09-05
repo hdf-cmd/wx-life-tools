@@ -179,5 +179,22 @@ Page({
         }
       }
     })
+  },
+
+  /**
+   * 分享给好友
+   */
+  onShareAppMessage: function () {
+    return {
+      title: '随手一个随机数',
+      path: '/pages/random/number/index'
+    }
+  },
+
+  /**
+   * 分享到朋友圈
+   */
+  onShareTimeline: function () {
+    return { title: '随手一个随机数' }
   }
 })

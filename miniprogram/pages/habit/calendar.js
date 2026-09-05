@@ -20,6 +20,7 @@ Page({
     totalDays: 0,        // 本月应打卡天数
     checkedDays: 0,      // 本月已打卡天数
     completionRate: 0,   // 完成率百分比
+    bestStreak: 0,       // 本月内最长连续打卡天数
 
     loading: true
   },
@@ -121,11 +122,28 @@ Page({
         const daysInMonth = this.data.totalDays
         const rate = daysInMonth > 0 ? Math.round(logDates.length / daysInMonth * 100) : 0
 
+        // 本月内最长连续打卡天数（日期字符串升序逐日比较）
+        const sorted = logDates.slice().sort()
+        let best = 0
+        let run = 0
+        let prevTime = 0
+        sorted.forEach(ds => {
+          const t = new Date(ds + 'T00:00:00').getTime()
+          if (prevTime && t - prevTime === 86400000) {
+            run++
+          } else {
+            run = 1
+          }
+          prevTime = t
+          if (run > best) best = run
+        })
+
         this.setData({
           logDates: logDates,
           calendarDays: calendarDays,
           checkedDays: logDates.length,
           completionRate: rate,
+          bestStreak: best,
           loading: false
         })
       } else {
@@ -165,5 +183,22 @@ Page({
     this.setData({ year, month })
     this.buildCalendar()
     this.loadLogs()
+  },
+
+  /**
+   * 分享给好友
+   */
+  onShareAppMessage: function () {
+    return {
+      title: '我的打卡日历，坚持看得见',
+      path: '/pages/habit/calendar'
+    }
+  },
+
+  /**
+   * 分享到朋友圈
+   */
+  onShareTimeline: function () {
+    return { title: '我的打卡日历，坚持看得见' }
   }
 })

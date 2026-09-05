@@ -162,5 +162,22 @@ Page({
         }
       }
     })
+  },
+
+  /**
+   * 分享给好友
+   */
+  onShareAppMessage: function () {
+    return {
+      title: '纠结的事，交给命运决定',
+      path: '/pages/random/decision/index'
+    }
+  },
+
+  /**
+   * 分享到朋友圈
+   */
+  onShareTimeline: function () {
+    return { title: '纠结的事，交给命运决定' }
   }
 })
