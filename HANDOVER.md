@@ -41,7 +41,7 @@
 |---|---|---|
 | `accounts` | 记账记录 | 核心集合，必存在 |
 | `habits` | 习惯定义 | 核心集合，必存在 |
-| `habit_logs` | 打卡记录 | **按需创建**，首次打卡前不存在 |
+| `habit_logs` | 打卡记录 | **按需创建**（首次打卡时 checkIn 内部自动建表并重试），首次打卡前不存在 |
 | `budgets` | 月度预算 | **按需创建**（bookkeeping 内部 try-catch 建表），`{_openid, month, amount}`，amount=0 表示清除 |
 | `unwatermark/*` | 云存储目录 | 去水印转存的视频文件（无自动清理机制，需在云开发控制台手动管理） |
 
@@ -109,6 +109,7 @@
 | 视频截图空白帧 | 时序问题：需 pause+seek → 延迟约 900ms 再截；安卓需"播放 200ms→暂停→重截"兜底 |
 | 高德 `location` 参数 | 顺序是 **经度,纬度**（与腾讯相反），已在 nearby 中处理 |
 | 移除页面路由 | 需同步检查 `app.json` 的 tabBar 和 pages 两处引用 |
+| 删页面后编译 ENOENT / 模块未定义 | 热重载(compileHotReLoad)缓存的模块图引用已删文件；**关热重载 → 清缓存 → 关项目重开**（模拟器里残留的旧页面实例也必须随重启丢弃） |
 | 图片上传失败 | 注意图片体积限制，压缩页已处理 |
 | `@swc/runtime/_define_property.js is not defined` | 展开语法 `{...}` 被增强编译转为辅助模块引用但模块未打包；**源码禁用展开语法**，用 `Object.assign` / `[].concat` / `slice()` 替代（已全局清理，`project.config.json` 的 `es6` 也已关闭） |
 

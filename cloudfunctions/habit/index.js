@@ -181,16 +181,26 @@ async function checkIn(openid, params) {
       return { code: -2, msg: '今天已经打过卡啦，明天继续加油！' }
     }
 
-    // 写入打卡记录
-    const result = await db.collection('habit_logs').add({
-      data: {
-        _openid: openid,
-        habitId: habitId,
-        date: checkDate,
-        note: note || '',
-        createdAt: db.serverDate()
+    // 写入打卡记录（habit_logs 按需创建：集合不存在时先建表再重试一次）
+    const logData = {
+      _openid: openid,
+      habitId: habitId,
+      date: checkDate,
+      note: note || '',
+      createdAt: db.serverDate()
+    }
+    let result
+    try {
+      result = await db.collection('habit_logs').add({ data: logData })
+    } catch (writeErr) {
+      // 集合不存在（约 -502005）→ 建表重试
+      try {
+        await db.createCollection('habit_logs')
+        result = await db.collection('habit_logs').add({ data: logData })
+      } catch (retryErr) {
+        return { code: -1, msg: '打卡失败', error: retryErr.message }
       }
-    })
+    }
 
     // 计算最新连续天数
     let streak = 0
@@ -221,14 +231,20 @@ async function getLogs(openid, params) {
     const startDate = month ? `${month}-01` : `${getTodayStr().substring(0, 7)}-01`
     const endDate = month ? `${month}-31` : `${getTodayStr().substring(0, 7)}-31`
 
-    const { data: logs } = await db.collection('habit_logs')
-      .where({
-        _openid: openid,
-        habitId: habitId,
-        date: _.gte(startDate).and(_.lte(endDate))
-      })
-      .orderBy('date', 'desc')
-      .get()
+    let logs = []
+    try {
+      const { data } = await db.collection('habit_logs')
+        .where({
+          _openid: openid,
+          habitId: habitId,
+          date: _.gte(startDate).and(_.lte(endDate))
+        })
+        .orderBy('date', 'desc')
+        .get()
+      logs = data || []
+    } catch (e) {
+      // habit_logs 集合不存在时视为无记录（从未打过卡）
+    }
 
     return { code: 0, data: logs }
   } catch (e) {
@@ -266,16 +282,21 @@ async function deleteHabit(openid, params) {
       return { code: -1, msg: '无权删除该习惯' }
     }
 
-    // 批量删除打卡记录（每次 where.remove 最多删 20 条，循环直到清空）
-    while (true) {
-      const { data: batch } = await db.collection('habit_logs')
-        .where({ _openid: openid, habitId: habitId })
-        .limit(20)
-        .get()
-      if (!batch || batch.length === 0) break
-      for (const log of batch) {
-        await db.collection('habit_logs').doc(log._id).remove()
+    // 批量删除打卡记录（每次 where.remove 最多删 20 条，循环直到清空；
+    // habit_logs 集合不存在时视为无记录，跳过清理直接删习惯）
+    try {
+      while (true) {
+        const { data: batch } = await db.collection('habit_logs')
+          .where({ _openid: openid, habitId: habitId })
+          .limit(20)
+          .get()
+        if (!batch || batch.length === 0) break
+        for (const log of batch) {
+          await db.collection('habit_logs').doc(log._id).remove()
+        }
       }
+    } catch (e) {
+      // 集合不存在时忽略（该用户从未打过卡）
     }
 
     // 删除习惯
