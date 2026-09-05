@@ -5,6 +5,7 @@
 ## 一、项目概览
 
 - **类型**：微信小程序（原生开发，非 uni-app），云开发架构
+- **远程仓库**：https://github.com/hdf-cmd/wx-life-tools （main 分支；GitHub 仓库名不支持中文，会静默转成短横线）
 - **AppID**：`wxf676b631dbbc8e32`（个人主体）
 - **云环境 ID**：`cloud1-d6g4x9h9m507b429c`（硬编码在 `miniprogram/app.js`）
 - **功能定位**：生活工具集合——记账、习惯打卡、随机选择、工具箱（媒体处理/去水印）
