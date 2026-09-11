@@ -1,6 +1,7 @@
 // cloudfunctions/habit/index.js
 // 习惯打卡云函数 - 通过 action 路由实现不同功能
 
+const crypto = require('crypto')
 const cloud = require('wx-server-sdk')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
@@ -158,22 +159,25 @@ async function listHabits(openid) {
  */
 async function checkIn(openid, params) {
   const { habitId, date, note } = params
+  if (!habitId) return { code: -1, msg: '缺少习惯ID' }
   const checkDate = date || getTodayStr()
 
+  // 幂等键：同人+同习惯+同日恒定 → 并发重复写入由数据库主键唯一性兜底拦截
+  const dedupeId = crypto.createHash('md5')
+    .update(openid + '|' + habitId + '|' + checkDate)
+    .digest('hex')
+
   try {
-    // 检查是否重复打卡
+    // 查重：提前提示 + 拦截旧随机 _id 历史数据的重复打卡；并发防重由主键兜底
     let existing = []
     try {
-      const result = await db.collection('habit_logs')
-        .where({
-          _openid: openid,
-          habitId: habitId,
-          date: checkDate
-        })
-        .get()
-      existing = result.data || []
+      existing = await findExistingLog(openid, habitId, checkDate)
     } catch (e) {
-      // habit_logs 集合不存在时视为无记录
+      // 结果不明时先停下（fail-closed）：仅"集合不存在"这一确定错误可继续，
+      // 超时等未知错误一律返回失败，避免按无记录写入造成重复
+      if (!isCollectionNotExist(e)) {
+        return { code: -1, msg: '打卡失败，请重试', error: e.message }
+      }
       existing = []
     }
 
@@ -181,8 +185,9 @@ async function checkIn(openid, params) {
       return { code: -2, msg: '今天已经打过卡啦，明天继续加油！' }
     }
 
-    // 写入打卡记录（habit_logs 按需创建：集合不存在时先建表再重试一次）
+    // 写入打卡记录（指定幂等 _id；habit_logs 按需创建：集合不存在时先建表再重试一次）
     const logData = {
+      _id: dedupeId,
       _openid: openid,
       habitId: habitId,
       date: checkDate,
@@ -193,12 +198,16 @@ async function checkIn(openid, params) {
     try {
       result = await db.collection('habit_logs').add({ data: logData })
     } catch (writeErr) {
-      // 集合不存在（约 -502005）→ 建表重试
-      try {
-        await db.createCollection('habit_logs')
-        result = await db.collection('habit_logs').add({ data: logData })
-      } catch (retryErr) {
-        return { code: -1, msg: '打卡失败', error: retryErr.message }
+      // 集合不存在（约 -502005）→ 建表重试一次
+      if (isCollectionNotExist(writeErr)) {
+        try {
+          await db.createCollection('habit_logs')
+          result = await db.collection('habit_logs').add({ data: logData })
+        } catch (retryErr) {
+          return await resolveWriteFailure(retryErr, openid, habitId, checkDate)
+        }
+      } else {
+        return await resolveWriteFailure(writeErr, openid, habitId, checkDate)
       }
     }
 
@@ -309,6 +318,47 @@ async function deleteHabit(openid, params) {
 }
 
 // ===== 辅助函数 =====
+
+/**
+ * 查询某用户某习惯某日的打卡记录（checkIn 查重与写入失败后确认共用）
+ */
+async function findExistingLog(openid, habitId, checkDate) {
+  const result = await db.collection('habit_logs')
+    .where({
+      _openid: openid,
+      habitId: habitId,
+      date: checkDate
+    })
+    .get()
+  return result.data || []
+}
+
+/**
+ * 写入失败后的统一裁决：重查确认。
+ * 查到记录 = 并发竞态下对手已完成打卡（主键冲突）→ 按"已打卡"返回；
+ * 查不到 = 真实写入错误 → 返回失败，绝不盲目重写。
+ */
+async function resolveWriteFailure(err, openid, habitId, checkDate) {
+  try {
+    const confirmed = await findExistingLog(openid, habitId, checkDate)
+    if (confirmed.length > 0) {
+      return { code: -2, msg: '今天已经打过卡啦，明天继续加油！' }
+    }
+  } catch (e) {
+    // 确认查询也失败，按写失败处理
+  }
+  return { code: -1, msg: '打卡失败', error: err.message }
+}
+
+/**
+ * 判断数据库错误是否为"集合不存在"（约 -502005）
+ * 仅这一确定错误可走建表重试；超时等结果不明错误必须区分开
+ */
+function isCollectionNotExist(e) {
+  if (!e) return false
+  if (e.errCode === -502005) return true
+  return /not exists|COLLECTION_NOT_EXIST/i.test(e.errMsg || e.message || '')
+}
 
 /**
  * 获取今天的日期字符串 YYYY-MM-DD

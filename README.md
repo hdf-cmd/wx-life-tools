@@ -33,11 +33,22 @@
 │   ├── components/         # empty-state、skeleton 通用组件
 │   └── images/             # tabbar 与卡片图标（见 ICON-DESIGN.md）
 ├── cloudfunctions/         # 云函数根目录（5 个）
+├── tests/                  # 云函数沙箱测试（wx-server-sdk 桩件 + 真实云函数源码）
 ├── tools/icon-forge.js     # 图标渲染脚本（SVG → sharp → PNG）
 ├── ICON-DESIGN.md          # 图标设计规范
 ├── HANDOVER.md             # 交接文档：硬性开发规范 / 已知陷阱 / 部署步骤
 └── AGENTS.md               # AI 协作交接：项目进展 / 关键决策 / 待办
 ```
+
+## 测试
+
+云函数测试采用本地沙箱方式：`tests/stubs/wx-server-sdk.js` 内存桩件模拟数据库（主键唯一性与真实 MongoDB 一致），加载**真实云函数源码**做接口级验证，无需部署即可运行：
+
+```bash
+node tests/habit-checkin.test.js
+```
+
+当前覆盖 `habit` 的 `checkIn` 接口 6 项：并发双写防重（幂等 `_id`）、顺序重复打卡、旧随机 `_id` 历史数据兼容、查重超时 fail-closed、集合不存在自动建表、幂等键跨用户/跨日期隔离。
 
 ## 快速上手
 
