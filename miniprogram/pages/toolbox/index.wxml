@@ -17,7 +17,10 @@
     >
       <image class="entry-icon-img" src="/images/icons/{{item.icon}}.png" mode="aspectFit"/>
       <view class="entry-text">
-        <text class="entry-title">{{item.title}}</text>
+        <view class="entry-title-row">
+          <text class="entry-title">{{item.title}}</text>
+          <text class="entry-badge" wx:if="{{item.external}}">第三方</text>
+        </view>
         <text class="entry-desc">{{item.desc}}</text>
       </view>
       <text class="entry-arrow">›</text>

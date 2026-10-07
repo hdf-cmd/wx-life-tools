@@ -114,6 +114,23 @@
   margin-bottom: 4rpx;
 }
 
+.entry-title-row {
+  display: flex;
+  align-items: center;
+}
+
+/* 第三方工具角标：琥珀色只做底色与描边，文字走主题变量，深浅两套都可读 */
+.entry-badge {
+  margin-left: 12rpx;
+  padding: 2rpx 12rpx;
+  border-radius: var(--radius-round);
+  background: rgba(240, 163, 47, 0.14);
+  border: 2rpx solid rgba(240, 163, 47, 0.5);
+  color: var(--color-text-secondary);
+  font-size: 20rpx;
+  line-height: 1.6;
+}
+
 .entry-desc {
   font-size: 24rpx;
   color: var(--color-text-placeholder);

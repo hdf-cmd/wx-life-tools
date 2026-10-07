@@ -22,6 +22,12 @@
 
   <!-- 在线编辑工具 -->
   <block wx:if="{{online.length}}">
+    <!-- 第三方声明：客服入口和复制链接两条路径都给同一个外部站，所以放在整块最前面盖住两者 -->
+    <view class="online-notice">
+      <text class="online-notice-strong">以下在线工具由第三方网站提供，非本项目运营。</text>
+      <text class="online-notice-text">页面内容、可用性与隐私政策均由对方负责；本项目不存储、也不处理你的文件。请勿在其中填写个人信息或上传敏感资料。</text>
+    </view>
+
     <!-- 客服入口：点击后在客服会话中获取链接，点开即用 -->
     <view class="contact-card">
       <view class="contact-info">
@@ -34,7 +40,7 @@
       <button class="contact-btn" open-type="contact" session-from="tools">获取链接</button>
     </view>
 
-    <view class="online-tip">或点击下方工具复制链接，到浏览器打开</view>
+    <view class="online-tip">或点击工具复制链接，到浏览器打开（第三方站点）</view>
     <view class="online-grid">
       <view
         class="online-item"

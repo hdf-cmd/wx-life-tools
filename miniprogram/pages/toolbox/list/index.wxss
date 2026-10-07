@@ -120,6 +120,30 @@
   margin-bottom: 16rpx;
 }
 
+/* 第三方工具声明条：全部走设计令牌，深色模式无需额外覆盖 */
+.online-notice {
+  padding: 20rpx 24rpx;
+  margin-bottom: 20rpx;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-hover);
+  border-left: 6rpx solid #F0A32F;
+}
+
+.online-notice-strong {
+  display: block;
+  font-size: 24rpx;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 8rpx;
+}
+
+.online-notice-text {
+  display: block;
+  font-size: 22rpx;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
 .online-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

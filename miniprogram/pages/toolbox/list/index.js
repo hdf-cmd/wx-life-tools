@@ -87,15 +87,17 @@ Page({
   /**
    * 在线工具：复制链接，引导浏览器打开
    * (这些工具依赖浏览器端处理能力，如 ffmpeg.wasm / pdf wasm，小程序内无法运行)
+   * 目标站点是第三方资产，弹窗里点名域名，避免用户以为打开的是本项目页面
    */
   openOnline: function (e) {
     const url = this.data.host + e.currentTarget.dataset.path
+    const host = this.data.host.replace(/^https?:\/\//, '')
     wx.setClipboardData({
       data: url,
       success: () => {
         wx.showModal({
           title: '链接已复制',
-          content: '该工具需在浏览器中使用，链接已复制到剪贴板，请打开手机浏览器粘贴访问',
+          content: '该工具由第三方站点 ' + host + ' 提供，非本项目运营。链接已复制到剪贴板，请打开手机浏览器粘贴访问',
           confirmText: '知道了',
           showCancel: false
         })
