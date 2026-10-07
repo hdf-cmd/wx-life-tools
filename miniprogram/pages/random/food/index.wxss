@@ -346,3 +346,39 @@
   color: #AAA;
   text-decoration: underline;
 }
+
+/* ===== 深色模式覆盖（须置于文件末尾才能盖住前面的浅色声明） =====
+   #FF6B6B/#FF8E6B 这类饱和主色在深色下本身可读，只改浅底与浅描边。 */
+@media (prefers-color-scheme: dark) {
+  .page-container {
+    background: var(--color-bg-page);
+  }
+
+  .header-count,
+  .btn-secondary:active {
+    background: rgba(255, 107, 107, 0.16);
+  }
+
+  .btn-secondary {
+    border-color: rgba(255, 107, 107, 0.45);
+  }
+
+  .history-tag,
+  .panel-inner {
+    border-color: var(--color-border);
+  }
+
+  .add-input {
+    background: var(--color-bg-hover);
+  }
+
+  .food-tag.custom {
+    background: rgba(255, 142, 107, 0.16);
+    border-color: rgba(255, 142, 107, 0.40);
+  }
+
+  .food-tag.preset {
+    background: rgba(255, 107, 107, 0.14);
+    border-color: rgba(255, 107, 107, 0.35);
+  }
+}

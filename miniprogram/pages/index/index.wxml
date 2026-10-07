@@ -51,7 +51,7 @@
       bindtap="goTab"
       hover-class="quick-hover"
     >
-      <view class="quick-icon-wrap" style="background: {{item.bg}};">
+      <view class="quick-icon-wrap quick-icon--{{item.id}}">
         <image class="quick-icon-img" src="/images/icons/{{item.icon}}.png" mode="aspectFit"/>
       </view>
       <view class="quick-title">{{item.title}}</view>

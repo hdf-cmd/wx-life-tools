@@ -225,3 +225,12 @@
   color: var(--color-danger);
   padding: 12rpx 20rpx;
 }
+
+/* ===== 深色模式覆盖（须置于文件末尾才能盖住前面的浅色声明） =====
+   页头那条蓝紫渐变原先整片是浅色，深色下从顶部就压出一块白斑；
+   保留同一色相走向，只把不透明度降下来贴到深色底上。 */
+@media (prefers-color-scheme: dark) {
+  .page-container {
+    background: linear-gradient(180deg, rgba(62, 134, 224, 0.14) 0%, rgba(138, 99, 232, 0.14) 40%, var(--color-bg-page) 100%);
+  }
+}

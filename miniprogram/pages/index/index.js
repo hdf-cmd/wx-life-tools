@@ -25,35 +25,32 @@ Page({
       streak: '0'
     },
 
-    // 功能快捷入口
+    // 功能快捷入口（配色在 index.wxss 的 .quick-icon--<id>，含深色模式变体；
+    // 原先把渐变写在 JS 数据里当内联样式，@media prefers-color-scheme 覆盖不到）
     featureCards: [
       {
         id: 'bookkeeping',
         icon: 'card-bookkeeping',
         title: '记账本',
-        desc: '轻松记录每笔收支',
-        bg: 'linear-gradient(135deg, #E3F0FF 0%, #CFE4FF 100%)'
+        desc: '轻松记录每笔收支'
       },
       {
         id: 'habit',
         icon: 'card-habit',
         title: '习惯打卡',
-        desc: '每天坚持，养成好习惯',
-        bg: 'linear-gradient(135deg, #E4F7E6 0%, #CFF0D3 100%)'
+        desc: '每天坚持，养成好习惯'
       },
       {
         id: 'random',
         icon: 'card-random',
         title: '随机一下',
-        desc: '吃什么喝什么，交给命运',
-        bg: 'linear-gradient(135deg, #FFEBE8 0%, #FFD9D3 100%)'
+        desc: '吃什么喝什么，交给命运'
       },
       {
         id: 'toolbox',
         icon: 'card-toolbox',
         title: '工具箱',
-        desc: '媒体工具一站式解决',
-        bg: 'linear-gradient(135deg, #F1EAFE 0%, #E4D8FB 100%)'
+        desc: '媒体工具一站式解决'
       }
     ]
   },

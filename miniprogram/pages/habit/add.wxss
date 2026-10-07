@@ -175,3 +175,21 @@
 .save-btn::after {
   border: none;
 }
+
+/* ===== 深色模式覆盖 =====
+   本页浅灰输入框/选择块原先是写死的 #F8F8F8/#F5F5F5/#E3F2FD，深色下整片发白。
+   必须放在文件末尾：同优先级下后写的规则才盖得住上面的浅色声明。 */
+@media (prefers-color-scheme: dark) {
+  .form-input,
+  .preview-emoji,
+  .icon-item,
+  .freq-btn,
+  .week-item {
+    background: var(--color-bg-hover);
+  }
+
+  .icon-item.selected,
+  .week-item.selected {
+    background: rgba(62, 134, 224, 0.22);
+  }
+}
