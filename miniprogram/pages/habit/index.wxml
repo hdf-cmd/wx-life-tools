@@ -69,14 +69,25 @@
     </view>
   </view>
 
-  <!-- 空状态 -->
-  <view class="empty-wrap" wx:else>
+  <!-- 空状态（加载失败时不显示，避免把「失败了」说成「还没有习惯」） -->
+  <view class="empty-wrap" wx:elif="{{!loadError}}">
     <empty-state
       icon="🌱"
       text="还没有习惯，点击下方添加第一个习惯吧"
       showAction="{{true}}"
       actionText="添加习惯"
       bind:action="onEmptyAction"
+    />
+  </view>
+
+  <!-- 错误态：与空态分开，给一个重新加载的出口 -->
+  <view class="empty-wrap" wx:else>
+    <empty-state
+      icon="⚠️"
+      text="习惯列表加载失败了"
+      showAction="{{true}}"
+      actionText="重新加载"
+      bind:action="loadHabits"
     />
   </view>
 
@@ -87,7 +98,7 @@
 
   <!-- 长按操作菜单遮罩 -->
   <view class="action-mask" wx:if="{{showActionSheet}}" bindtap="closeActionSheet">
-    <view class="action-sheet" catchtap="">
+    <view class="action-sheet" catchtap="noop">
       <view class="action-title">{{currentHabit.name}}</view>
       <view class="action-item" bindtap="onEditHabit">
         <text class="action-icon">✏️</text>

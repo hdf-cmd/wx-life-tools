@@ -13,6 +13,16 @@
     </view>
   </view>
 
+  <!-- 统计口径提示：本月账单超过服务端单次上限时，统计只按前 1000 条算（不能静默少算） -->
+  <!-- 说明：本轮不许改 stats.wxss，故用主题变量内联样式，深色模式靠 --color-bg-card/--color-text-secondary 自适应 -->
+  <view
+    class="card"
+    wx:if="{{!loading && statsTruncated}}"
+    style="padding: 20rpx 24rpx; margin-bottom: var(--spacing-md); font-size: var(--font-sm); color: var(--color-text-secondary);"
+  >
+    <text>⚠️ 本月账单超过 1000 条，统计仅按前 1000 条计算</text>
+  </view>
+
   <!-- 收支汇总卡片 -->
   <view class="summary-card card">
     <view class="summary-row">
@@ -54,7 +64,10 @@
     <view class="trend-legend">
       <text class="legend-item"><text class="legend-dot income"></text>收入</text>
       <text class="legend-item"><text class="legend-dot expense"></text>支出</text>
-      <text class="legend-hint">点柱子可切月份</text>
+      <text class="legend-hint">固定显示最近 6 个月，点柱子可切月份</text>
+    </view>
+    <view wx:if="{{trendTruncated}}" style="margin-top: var(--spacing-sm); font-size: var(--font-xs); color: var(--color-text-secondary);">
+      <text>⚠️ 这 6 个月账单超过 1000 条，趋势仅按前 1000 条计算</text>
     </view>
   </view>
 
@@ -85,9 +98,19 @@
     {{exporting ? '导出中...' : '⬇ 导出本月 CSV（复制到剪贴板）'}}
   </button>
 
+  <!-- 加载失败态（与「本月没有记录」的空态分开，给重试入口） -->
+  <empty-state
+    wx:if="{{!loading && loadError}}"
+    icon="⚠️"
+    text="统计加载失败了"
+    showAction="{{true}}"
+    actionText="重新加载"
+    bind:action="retryLoad"
+  />
+
   <!-- 空状态 -->
   <empty-state
-    wx:if="{{!loading && categoryStats.length === 0}}"
+    wx:if="{{!loading && !loadError && categoryStats.length === 0}}"
     icon="📊"
     text="本月暂无支出记录"
   />

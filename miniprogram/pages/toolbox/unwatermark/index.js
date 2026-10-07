@@ -24,6 +24,11 @@ Page({
         } else {
           wx.showToast({ title: '剪贴板为空', icon: 'none' })
         }
+      },
+      // 剪贴板属隐私接口，被系统拦截时原先无任何失败处理，点了没反应
+      fail: err => {
+        console.error('[unwatermark] 读取剪贴板失败:', err)
+        wx.showToast({ title: '读取剪贴板失败，请手动粘贴', icon: 'none' })
       }
     })
   },
@@ -48,17 +53,17 @@ Page({
 
     wx.cloud.callFunction({
       name: 'unwatermark',
-      followSystem: true,
       data: { url: link },
       success: res => {
         wx.hideLoading()
-        const r = res && res.result
-        if (r && r.code === 0) {
+        // 云函数超时/崩溃时 result 为空，直接取属性会抛 TypeError
+        const r = (res && res.result) || {}
+        if (r.code === 0) {
           this.setData({ parsing: false, result: r })
           this._getPreviewUrl(r.fileID)
         } else {
           this.setData({ parsing: false })
-          wx.showModal({ title: '解析失败', content: (r && r.msg) || '未知错误', showCancel: false })
+          wx.showModal({ title: '解析失败', content: r.msg || '未知错误', showCancel: false })
         }
       },
       fail: err => {
@@ -74,9 +79,9 @@ Page({
    * 获取临时链接用于视频预览
    */
   _getPreviewUrl: function (fileID) {
+    if (!fileID) return
     wx.cloud.getTempFileURL({
       fileList: [fileID],
-      followSystem: true,
       success: res => {
         const item = res.fileList && res.fileList[0]
         if (item && item.tempFileURL && this.data.result) {
@@ -96,7 +101,6 @@ Page({
 
     wx.cloud.downloadFile({
       fileID: this.data.result.fileID,
-      followSystem: true,
       success: res => {
         wx.saveVideoToPhotosAlbum({
           filePath: res.tempFilePath,

@@ -2,6 +2,12 @@
 // 记一笔页面逻辑
 
 const util = require('../../utils/util.js')
+const date = require('../../utils/date.js')
+
+// 表单上限：与云函数 bookkeeping 的校验口径对齐，前端先拦一道，不靠服务端拒绝
+const MAX_AMOUNT = 10000000
+const MAX_NOTE_LEN = 200
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
 // 支出分类
 const EXPENSE_CATEGORIES = [
@@ -40,9 +46,11 @@ Page({
   },
 
   onLoad: function (options) {
-    // 默认日期为今天
-    const today = util.formatDate(new Date())
-    this.setData({ date: today })
+    this._destroyed = false
+    this._backTimer = null   // 「提示后返回上一页」的 setTimeout 句柄，onUnload 里必须清掉
+
+    // 默认日期为今天（统一走 utils/date 的本地时区口径）
+    this.setData({ date: date.todayStr() })
 
     // 编辑模式：带 id 进入，加载原账单回填
     if (options && options.id) {
@@ -50,6 +58,26 @@ Page({
       wx.setNavigationBarTitle({ title: '编辑账单' })
       this.loadBill(options.id)
     }
+  },
+
+  onUnload: function () {
+    this._destroyed = true
+    if (this._backTimer) {
+      clearTimeout(this._backTimer)
+      this._backTimer = null
+    }
+  },
+
+  /**
+   * 延迟返回上一页（唯一入口，便于统一清理句柄）
+   */
+  backLater: function (delay) {
+    const that = this
+    this._backTimer = setTimeout(function () {
+      that._backTimer = null
+      if (that._destroyed) return
+      wx.navigateBack()
+    }, delay)
   },
 
   /**
@@ -60,17 +88,19 @@ Page({
     util.showLoading('加载中...')
 
     wx.cloud.callFunction({
-      followSystem: true,
       name: 'bookkeeping',
       data: { action: 'get', id: id },
       success: function (res) {
+        if (that._destroyed) return
         util.hideLoading()
-        if (res.result.code !== 0) {
-          util.showToast(res.result.msg || '账单加载失败')
-          setTimeout(function () { wx.navigateBack() }, 1000)
+        const r = (res && res.result) || {}
+        if (r.code !== 0) {
+          // 无权/已被删除：绝不能停在空白表单，否则用户点保存会「编辑」出一条新记录
+          util.showToast(r.msg || '账单加载失败')
+          that.backLater(1000)
           return
         }
-        const bill = res.result.data
+        const bill = r.data || {}
         const categories = bill.type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
         that.setData({
           type: bill.type,
@@ -82,6 +112,7 @@ Page({
         })
       },
       fail: function (err) {
+        if (that._destroyed) return
         util.hideLoading()
         console.error('[loadBill] 调用失败:', err)
         util.showToast('网络错误，请重试')
@@ -143,67 +174,93 @@ Page({
   },
 
   /**
+   * 表单校验（提交前置，不依赖云函数返回）
+   * @returns {number|null} 通过时返回「以分为单位」的整数金额；不通过时已 toast，返回 null
+   */
+  validateForm: function () {
+    const { amount, selectedCategory, note } = this.data
+    const dateStr = this.data.date
+
+    const amt = Number(amount)
+    if (!amount || !isFinite(amt) || amt <= 0) {
+      util.showToast('请输入有效金额')
+      return null
+    }
+    if (amt >= MAX_AMOUNT) {
+      util.showToast('金额过大，请确认后再记')
+      return null
+    }
+    if (!selectedCategory) {
+      util.showToast('请选择分类')
+      return null
+    }
+    if (note && note.length > MAX_NOTE_LEN) {
+      util.showToast('备注最多 ' + MAX_NOTE_LEN + ' 字，请精简一下')
+      return null
+    }
+    if (!DATE_RE.test(dateStr || '')) {
+      util.showToast('日期格式不正确（应为 YYYY-MM-DD）')
+      return null
+    }
+
+    // 先转分做整数运算，最后一步才 /100 还原，避免浮点直加放大误差
+    const cents = Math.round(amt * 100)
+    if (cents < 1) {
+      // 例如输入 0.001：四舍五入后为 0 分，服务端会按「金额必须大于0」拒掉
+      util.showToast('金额最少 0.01 元')
+      return null
+    }
+    return cents
+  },
+
+  /**
    * 保存账单
    */
   saveBill: function () {
     // 防抖：防止重复提交
     if (this.data.saving) return
+
+    const cents = this.validateForm()
+    if (cents === null) return
+
+    const that = this
     this.setData({ saving: true })
 
-    const { type, amount, selectedCategory, note, date } = this.data
-
-    // 校验金额
-    const amountNum = parseFloat(amount)
-    if (!amount || isNaN(amountNum) || amountNum <= 0) {
-      this.setData({ saving: false })
-      util.showToast('请输入有效金额')
-      return
-    }
-
-    // 校验分类
-    if (!selectedCategory) {
-      this.setData({ saving: false })
-      util.showToast('请选择分类')
-      return
-    }
-
-    // 处理浮点精度
-    const safeAmount = Math.round(amountNum * 100) / 100
-    const that = this
-
-    util.showLoading('保存中...')
+    const { type, selectedCategory, note } = this.data
 
     // 编辑模式走 update，新增走 add
     const isEdit = !!this.data.editId
     const data = {
       action: isEdit ? 'update' : 'add',
-      amount: safeAmount,
+      amount: cents / 100,           // 分 → 元：只在最后一步还原
       type: type,
       category: selectedCategory.name,
       note: note,
-      date: date
+      date: this.data.date
     }
     if (isEdit) data.id = this.data.editId
 
+    util.showLoading('保存中...')
+
     wx.cloud.callFunction({
-      followSystem: true,
       name: 'bookkeeping',
       data: data,
       success: function (res) {
+        if (that._destroyed) return
         util.hideLoading()
-        if (res.result.code === 0) {
+        const r = (res && res.result) || {}
+        if (r.code === 0) {
           util.showToast(isEdit ? '已保存' : '保存成功', 'success')
           // 返回上一页
-          setTimeout(() => {
-            wx.navigateBack()
-          }, 1000)
+          that.backLater(1000)
         } else {
-          util.showToast(res.result.msg || '保存失败')
+          util.showToast(r.msg || '保存失败')
           // 保存失败，解除防抖锁定
           that.setData({ saving: false })
         }
       },
       fail: function (err) {
+        if (that._destroyed) return
         util.hideLoading()
         console.error('[saveBill] 调用失败:', err)
         util.showToast('网络错误，请重试')

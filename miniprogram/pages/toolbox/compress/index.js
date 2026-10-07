@@ -1,6 +1,8 @@
 // pages/toolbox/compress/index.js
 // 工具箱 - 视频压缩
 
+const { formatSize } = require('../../../utils/format.js')
+
 Page({
   data: {
     videoPath: '',
@@ -21,6 +23,12 @@ Page({
     videoSizeText: ''
   },
 
+  onUnload: function () {
+    this._destroyed = true
+    // wx.showLoading 是全局遮罩，不随页面销毁自动收掉，离开时兜底关掉
+    if (this.data.compressing) wx.hideLoading()
+  },
+
   /**
    * 选择视频
    */
@@ -34,7 +42,7 @@ Page({
         this.setData({
           videoPath: file.tempFilePath,
           videoSize: file.size,
-          videoSizeText: this._fmtSize(file.size),
+          videoSizeText: formatSize(file.size),
           resultPath: '',
           resultSize: 0,
           resultSizeText: ''
@@ -65,6 +73,11 @@ Page({
       return
     }
     if (this.data.compressing) return
+    // 低版本基础库没有视频压缩能力，裸调会卡在"压缩中"不动
+    if (typeof wx.compressVideo !== 'function') {
+      wx.showToast({ title: '请升级微信后使用', icon: 'none' })
+      return
+    }
 
     this.setData({ compressing: true })
     wx.showLoading({ title: '压缩中...', mask: true })
@@ -76,15 +89,17 @@ Page({
       fps: 30,
       success: res => {
         wx.hideLoading()
+        if (this._destroyed) return
         this.setData({
           compressing: false,
           resultPath: res.tempFilePath,
           resultSize: res.size,
-          resultSizeText: this._fmtSize(res.size)
+          resultSizeText: formatSize(res.size)
         })
       },
       fail: err => {
         wx.hideLoading()
+        if (this._destroyed) return
         this.setData({ compressing: false })
         console.error('[compressVideo] fail:', err)
         wx.showToast({ title: '压缩失败，请重试', icon: 'none' })
@@ -115,15 +130,5 @@ Page({
         }
       }
     })
-  },
-
-  /**
-   * 字节数格式化
-   */
-  _fmtSize: function (bytes) {
-    if (!bytes && bytes !== 0) return ''
-    if (bytes < 1024) return bytes + ' B'
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
-    return (bytes / 1024 / 1024).toFixed(2) + ' MB'
   }
 })

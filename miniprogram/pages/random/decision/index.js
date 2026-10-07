@@ -26,7 +26,8 @@ Page({
 
   // 加载已保存的决策组
   loadSavedGroups: function () {
-    const groups = wx.getStorageSync(STORAGE_KEY) || []
+    const raw = wx.getStorageSync(STORAGE_KEY)
+    const groups = Array.isArray(raw) ? raw.filter(g => g && Array.isArray(g.options)) : []
     this.setData({ savedGroups: groups })
   },
 
@@ -111,11 +112,12 @@ Page({
       return
     }
 
-    // 加载现有决策组
-    const groups = wx.getStorageSync(STORAGE_KEY) || []
+    // 加载现有决策组（存储被写坏成非数组时 findIndex 会抛，先做类型校验）
+    const raw = wx.getStorageSync(STORAGE_KEY)
+    const groups = Array.isArray(raw) ? raw : []
 
     // 检查是否已存在同名
-    const existIdx = groups.findIndex(g => g.name === name)
+    const existIdx = groups.findIndex(g => g && g.name === name)
     if (existIdx >= 0) {
       // 更新现有
       groups[existIdx].options = [].concat(options)

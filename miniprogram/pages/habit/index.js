@@ -2,6 +2,7 @@
 // 习惯打卡 - 列表页
 
 const app = getApp()
+const { todayStr } = require('../../utils/date.js')
 
 Page({
   data: {
@@ -13,6 +14,7 @@ Page({
     // 习惯列表
     habitList: [],
     loading: true,
+    loadError: false,
 
     // 打卡成功提示
     showEncourage: false,
@@ -33,7 +35,18 @@ Page({
 
   onShow: function () {
     // 每次显示页面时刷新列表（从添加页返回时也能刷新）
+    // 日期必须一起重算：打卡的 date 取自 todayDate，只在 onLoad 算的话，
+    // 23:59 打开页面、00:01 点打卡就会把卡打到昨天（云函数侧现在会直接拒收）
+    this.initDate()
     this.loadHabits()
+  },
+
+  onUnload: function () {
+    this._destroyed = true
+    if (this._encourageTimer) {
+      clearTimeout(this._encourageTimer)
+      this._encourageTimer = null
+    }
   },
 
   /**
@@ -41,16 +54,14 @@ Page({
    */
   initDate: function () {
     const now = new Date()
-    const weekDays = ['日', '一', '二', '三', '四', '五', '六']
-    const y = now.getFullYear()
+    const weekNames = ['日', '一', '二', '三', '四', '五', '六']
     const m = now.getMonth() + 1
     const d = now.getDate()
-    const dateStr = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
 
     this.setData({
-      todayDate: dateStr,
+      todayDate: todayStr(now),
       todayDisplay: `${m}月${d}日`,
-      weekDay: `星期${weekDays[now.getDay()]}`
+      weekDay: `星期${weekNames[now.getDay()]}`
     })
   },
 
@@ -61,26 +72,28 @@ Page({
     this.setData({ loading: true })
 
     wx.cloud.callFunction({
-      followSystem: true,
       name: 'habit',
       data: { action: 'listHabits' }
     }).then(res => {
-      if (res.result.code === 0) {
-        const list = res.result.data || []
+      // 云函数超时/崩溃时 res.result 可能是 undefined，直接取 .code 会抛 TypeError 卡住 loading
+      const r = (res && res.result) || {}
+      if (r.code === 0) {
+        const list = r.data || []
         // 全部习惯中的最高连续天数
         const maxStreak = list.reduce(function (m, h) { return Math.max(m, h.streak || 0) }, 0)
         this.setData({
           habitList: list,
           maxStreak: maxStreak,
-          loading: false
+          loading: false,
+          loadError: false
         })
       } else {
-        this.setData({ loading: false })
-        wx.showToast({ title: res.result.msg || '加载失败', icon: 'none' })
+        this.setData({ loading: false, loadError: true })
+        wx.showToast({ title: r.msg || '加载失败', icon: 'none' })
       }
     }).catch(err => {
       console.error('加载习惯列表失败', err)
-      this.setData({ loading: false })
+      this.setData({ loading: false, loadError: true })
       wx.showToast({ title: '网络错误', icon: 'none' })
     })
   },
@@ -93,8 +106,9 @@ Page({
     const habit = e.currentTarget.dataset.habit
     if (habit.checkedIn) {
       // 已打卡，跳转到日历视图
+      // frequency/weekDays 一并带过去：日历页要按习惯频率算「本月应打卡天数」，否则 weekly 习惯拿整月天数当分母
       wx.navigateTo({
-        url: `/pages/habit/calendar?habitId=${habit._id}&habitName=${encodeURIComponent(habit.name)}&habitIcon=${encodeURIComponent(habit.icon)}`
+        url: `/pages/habit/calendar?habitId=${habit._id}&habitName=${encodeURIComponent(habit.name)}&habitIcon=${encodeURIComponent(habit.icon)}&frequency=${habit.frequency || 'daily'}&weekDays=${encodeURIComponent(JSON.stringify(habit.weekDays || []))}`
       })
       return
     }
@@ -102,7 +116,6 @@ Page({
     // 未打卡，执行打卡
     this._checkingIn = true
     wx.cloud.callFunction({
-      followSystem: true,
       name: 'habit',
       data: {
         action: 'checkIn',
@@ -110,7 +123,8 @@ Page({
         date: this.data.todayDate
       }
     }).then(res => {
-      if (res.result.code === 0) {
+      const r = (res && res.result) || {}
+      if (r.code === 0) {
         // 打卡成功：震动反馈 + 鼓励文字
         wx.vibrateShort({ type: 'medium' })
         const encourages = [
@@ -126,15 +140,21 @@ Page({
           encourageText: text
         })
 
-        // 2秒后隐藏鼓励
-        setTimeout(() => {
+        // 2秒后隐藏鼓励（页面已卸载则不再 setData）
+        if (this._encourageTimer) clearTimeout(this._encourageTimer)
+        this._encourageTimer = setTimeout(() => {
+          if (this._destroyed) return
           this.setData({ showEncourage: false })
         }, 2000)
 
         // 刷新列表
         this.loadHabits()
+      } else if (r.code === -2) {
+        // 重复打卡（含并发主键冲突后的确认）：不是失败，刷新列表让卡片按「已打卡」呈现
+        wx.showToast({ title: r.msg || '今天已经打过卡啦', icon: 'none' })
+        this.loadHabits()
       } else {
-        wx.showToast({ title: res.result.msg, icon: 'none' })
+        wx.showToast({ title: r.msg || '打卡失败', icon: 'none' })
       }
     }).catch(err => {
       console.error('打卡失败', err)
@@ -158,6 +178,11 @@ Page({
   closeActionSheet: function () {
     this.setData({ showActionSheet: false, currentHabit: null })
   },
+
+  /**
+   * 空事件占位：弹层内容器用 catchtap="noop" 阻止冒泡到遮罩（否则会误触关闭）
+   */
+  noop: function () {},
 
   /**
    * 编辑习惯
@@ -184,18 +209,18 @@ Page({
       success: (res) => {
         if (res.confirm) {
           wx.cloud.callFunction({
-            followSystem: true,
             name: 'habit',
             data: {
               action: 'deleteHabit',
               habitId: habit._id
             }
           }).then(res => {
-            if (res.result.code === 0) {
+            const r = (res && res.result) || {}
+            if (r.code === 0) {
               wx.showToast({ title: '已删除', icon: 'success' })
               this.loadHabits()
             } else {
-              wx.showToast({ title: res.result.msg, icon: 'none' })
+              wx.showToast({ title: r.msg || '删除失败', icon: 'none' })
             }
           }).catch(err => {
             // 删除习惯失败错误处理
@@ -321,7 +346,9 @@ Page({
             wx.saveImageToPhotosAlbum({
               filePath: r.tempFilePath,
               success: function () { wx.showToast({ title: '已保存到相册', icon: 'success' }) },
-              fail: function () { /* 用户拒绝相册权限 */ }
+              fail: function (err) {
+                that.handleAlbumSaveFail(err)
+              }
             })
           }
         },
@@ -331,6 +358,27 @@ Page({
         }
       })
     })
+  },
+
+  /**
+   * 保存相册失败分流：用户拒绝授权要引导去设置页开权限，其余失败只提示原因
+   */
+  handleAlbumSaveFail: function (err) {
+    const msg = (err && err.errMsg) || ''
+    console.error('保存海报到相册失败:', msg)
+    if (/auth|deny/i.test(msg)) {
+      wx.showModal({
+        title: '需要相册权限',
+        content: '保存图片需要相册权限，请到「设置」中开启后重试。',
+        confirmText: '去设置',
+        cancelText: '取消',
+        success: function (m) {
+          if (m.confirm) wx.openSetting()
+        }
+      })
+    } else {
+      wx.showToast({ title: '保存失败，请重试', icon: 'none' })
+    }
   },
 
   /**

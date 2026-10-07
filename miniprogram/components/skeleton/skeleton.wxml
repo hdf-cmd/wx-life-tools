@@ -10,7 +10,7 @@
 
   <!-- 列表行占位 -->
   <view class="skeleton-list">
-    <view class="skeleton-row" wx:for="{{rows}}" wx:key="*index">
+    <view class="skeleton-row" wx:for="{{rowList}}" wx:key="*this">
       <!-- 头像占位 -->
       <view class="skeleton-avatar skeleton-animate" wx:if="{{avatar}}"></view>
       <!-- 文字占位 -->

@@ -1,6 +1,19 @@
 // pages/habit/add.js
 // 习惯打卡 - 添加/编辑习惯页
 
+/**
+ * 安全解码 URL 参数：小程序 onLoad 拿到的 query 是未解码的原始串，
+ * 中文习惯名会保持 %E4%B9%A6… 形态写回数据库；已是明文或解码失败时原样返回
+ */
+function safeDecode(v) {
+  if (v === undefined || v === null) return ''
+  try {
+    return decodeURIComponent(String(v))
+  } catch (e) {
+    return String(v)
+  }
+}
+
 Page({
   data: {
     // 编辑模式
@@ -58,14 +71,21 @@ Page({
     if (options.id) {
       this.setData({
         isEdit: true,
-        habitId: options.id,
-        name: options.name || '',
-        icon: options.icon || '📌',
-        frequency: options.frequency || 'daily',
-        targetDays: options.targetDays || ''
+        habitId: safeDecode(options.id),
+        name: safeDecode(options.name),
+        icon: safeDecode(options.icon) || '📌',
+        frequency: safeDecode(options.frequency) || 'daily',
+        targetDays: safeDecode(options.targetDays)
       })
       if (options.weekDays) {
-        this.setData({ weekDays: JSON.parse(decodeURIComponent(options.weekDays)) })
+        let weekDays = []
+        try {
+          weekDays = JSON.parse(safeDecode(options.weekDays)) || []
+        } catch (e) {
+          console.error('weekDays 参数解析失败', e)
+          weekDays = []
+        }
+        this.setData({ weekDays: Array.isArray(weekDays) ? weekDays : [] })
       }
       wx.setNavigationBarTitle({ title: '编辑习惯' })
     }
@@ -123,14 +143,22 @@ Page({
    * 保存习惯
    */
   onSave: function () {
-    const { name, icon, frequency, weekDays, targetDays, isEdit, habitId } = this.data
+    // 防重复提交：按钮 disabled 有渲染延迟，快速连点会创建出重复习惯
+    if (this.data.saving) return
 
-    // 表单验证
-    if (!name.trim()) {
+    const { name, icon, frequency, weekDays, targetDays, isEdit, habitId } = this.data
+    const habitName = String(name || '').trim()
+
+    // 表单验证（口径与云函数 addHabit/updateHabit 保持一致）
+    if (!habitName) {
       wx.showToast({ title: '请输入习惯名称', icon: 'none' })
       return
     }
-    if (frequency === 'weekly' && weekDays.length === 0) {
+    if (habitName.length > 20) {
+      wx.showToast({ title: '习惯名称不能超过 20 个字符', icon: 'none' })
+      return
+    }
+    if (frequency === 'weekly' && (!weekDays || weekDays.length === 0)) {
       wx.showToast({ title: '请至少选择一天', icon: 'none' })
       return
     }
@@ -141,27 +169,27 @@ Page({
     const action = isEdit ? 'updateHabit' : 'addHabit'
     const callData = {
       action: action,
-      name: name.trim(),
+      name: habitName,
       icon: icon,
       frequency: frequency,
       weekDays: weekDays,
-      targetDays: targetDays ? parseInt(targetDays) : 0
+      targetDays: targetDays ? parseInt(targetDays, 10) || 0 : 0
     }
     if (isEdit) {
       callData.habitId = habitId
     }
 
     wx.cloud.callFunction({
-      followSystem: true,
       name: 'habit',
       data: callData
     }).then(res => {
       this.setData({ saving: false })
-      if (res.result.code === 0) {
+      const r = (res && res.result) || {}
+      if (r.code === 0) {
         wx.showToast({ title: isEdit ? '已更新' : '已添加', icon: 'success' })
         setTimeout(() => { wx.navigateBack() }, 1000)
       } else {
-        wx.showToast({ title: res.result.msg, icon: 'none' })
+        wx.showToast({ title: r.msg || '保存失败', icon: 'none' })
       }
     }).catch(err => {
       this.setData({ saving: false })

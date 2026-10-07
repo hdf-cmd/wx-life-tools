@@ -26,7 +26,7 @@
 
     <view class="brand-grid">
       <view
-        class="brand-card {{item.distance ? 'has-distance' : ''}}"
+        class="brand-card {{item.distanceText ? 'has-distance' : ''}}"
         wx:for="{{nearbyMode ? nearbyBrands : brands}}"
         wx:key="name"
         bindtap="selectBrand"

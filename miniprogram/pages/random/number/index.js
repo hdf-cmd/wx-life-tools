@@ -3,6 +3,10 @@
 
 const HISTORY_KEY = 'random_number_history'
 
+// 输入夹紧上限：type="number" 能敲进任意长数字串，不夹紧会把页面冻死
+const MAX_COUNT = 100        // 单次生成个数上限
+const MAX_RANGE = 100000     // 不重复模式下 min..max 的池子规模上限
+
 Page({
   data: {
     minValue: '1',       // 最小值
@@ -27,8 +31,8 @@ Page({
 
   // 加载历史记录
   loadHistory: function () {
-    const history = wx.getStorageSync(HISTORY_KEY) || []
-    this.setData({ history: history })
+    const raw = wx.getStorageSync(HISTORY_KEY)
+    this.setData({ history: Array.isArray(raw) ? raw : [] })
   },
 
   // 保存历史记录
@@ -65,9 +69,9 @@ Page({
 
   // 生成随机数
   generate: function () {
-    const min = parseInt(this.data.minValue)
-    const max = parseInt(this.data.maxValue)
-    const count = parseInt(this.data.count) || 1
+    const min = parseInt(this.data.minValue, 10)
+    const max = parseInt(this.data.maxValue, 10)
+    const count = parseInt(this.data.count, 10)
     const allowRepeat = this.data.allowRepeat
 
     // 验证输入
@@ -81,8 +85,18 @@ Page({
       return
     }
 
-    // 检查不重复模式下数量是否超过范围
+    if (isNaN(count) || count < 1 || count > MAX_COUNT) {
+      wx.showToast({ title: '生成个数需在 1~' + MAX_COUNT + ' 之间', icon: 'none' })
+      return
+    }
+
     const range = max - min + 1
+    // 不重复模式要 push 整个 min..max 池子再洗牌，范围过大（如 0~99999999）会卡死主线程
+    if (!allowRepeat && range > MAX_RANGE) {
+      wx.showToast({ title: '不重复时范围不能超过 ' + MAX_RANGE + ' 个数', icon: 'none' })
+      return
+    }
+    // 检查不重复模式下数量是否超过范围
     if (!allowRepeat && count > range) {
       wx.showToast({ title: '数量超过范围内不重复数', icon: 'none' })
       return
@@ -104,12 +118,18 @@ Page({
       if (rollCount >= maxRoll) {
         // 停止，生成最终结果
         const results = this.generateNumbers(min, max, count, allowRepeat)
+        this.clearTimer()
+        // results 可能为空（异常输入），先判长度，否则 results[0].toString() 直接抛
+        if (!results || results.length === 0) {
+          this.setData({ isRolling: false })
+          wx.showToast({ title: '生成失败，请调整范围', icon: 'none' })
+          return
+        }
         this.setData({
           displayNumber: results[0].toString(),
           isRolling: false,
           results: results
         })
-        this.clearTimer()
 
         // 保存到历史
         this.saveHistory({

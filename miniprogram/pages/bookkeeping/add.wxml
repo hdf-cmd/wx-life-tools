@@ -58,7 +58,7 @@
       placeholder="添加备注（可选）"
       value="{{note}}"
       bindinput="onNoteInput"
-      maxlength="50"
+      maxlength="200"
     />
   </view>
 

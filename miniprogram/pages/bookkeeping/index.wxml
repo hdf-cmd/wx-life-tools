@@ -7,7 +7,7 @@
     <view class="arrow-btn" bindtap="prevMonth">
       <text class="arrow">◀</text>
     </view>
-    <text class="month-text">{{currentYear}}年{{currentMonth}}月</text>
+    <text class="month-text">{{monthLabel}}</text>
     <view class="arrow-btn" bindtap="nextMonth">
       <text class="arrow">▶</text>
     </view>
@@ -24,7 +24,7 @@
     </view>
     <view class="summary-item">
       <text class="summary-label">支出</text>
-      <text class="summary-value expense">-{{totalExpense}}</text>
+      <text class="summary-value expense">{{expenseText}}</text>
     </view>
     <view class="summary-item">
       <text class="summary-label">结余</text>
@@ -95,9 +95,24 @@
     </view>
   </view>
 
+  <!-- 汇总超出单次查询上限时的明示（不再静默少算） -->
+  <view class="stats-truncated" wx:if="{{!loading && statsTruncated}}">
+    <text class="stats-truncated-text">⚠️ 本月账单超过 1000 条，汇总仅按前 1000 条计算</text>
+  </view>
+
+  <!-- 加载失败态（与"本月没有账单"区分开，给重试入口） -->
+  <empty-state
+    wx:if="{{!loading && loadError}}"
+    icon="⚠️"
+    text="账单加载失败了"
+    showAction="{{true}}"
+    actionText="重新加载"
+    bind:action="retryLoad"
+  />
+
   <!-- 空状态 -->
   <empty-state
-    wx:if="{{!loading && groupedBills.length === 0}}"
+    wx:if="{{!loading && !loadError && groupedBills.length === 0}}"
     icon="📝"
     text="本月还没有账单哦"
     showAction="{{true}}"

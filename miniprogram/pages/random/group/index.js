@@ -1,6 +1,10 @@
 // pages/random/group/index.js
 // 抽签分组工具
 
+// 输入夹紧上限：签数/名单长度无上限时，doDraw 的池子循环和分组渲染会把页面冻死
+const MAX_NAMES = 100
+const MAX_LOTS = 100
+
 Page({
   data: {
     mode: 'group',       // 当前模式：group=分组，draw=抽签
@@ -31,10 +35,19 @@ Page({
   onNamesInput: function (e) {
     const text = e.detail.value
     // 解析名字：支持换行和逗号分隔
-    const names = text
+    let names = text
       .split(/[\n,，]/)
       .map(s => s.trim())
       .filter(s => s.length > 0)
+    if (names.length > MAX_NAMES) {
+      names = names.slice(0, MAX_NAMES)
+      if (!this._namesLimitToasted) {
+        this._namesLimitToasted = true
+        wx.showToast({ title: '名单最多 ' + MAX_NAMES + ' 人，已截断', icon: 'none' })
+      }
+    } else {
+      this._namesLimitToasted = false
+    }
     this.setData({ namesText: text, names: names })
   },
 
@@ -137,11 +150,16 @@ Page({
 
   // 开始抽签
   startDraw: function () {
-    const count = parseInt(this.data.drawCount)
-    const pick = parseInt(this.data.drawPick)
+    const count = parseInt(this.data.drawCount, 10)
+    const pick = parseInt(this.data.drawPick, 10)
 
     if (isNaN(count) || count < 1) {
       wx.showToast({ title: '请输入有效的签数', icon: 'none' })
+      return
+    }
+    // 签数无上限时 doDraw 要 push count 次，输入 99999999 直接卡死主线程
+    if (count > MAX_LOTS) {
+      wx.showToast({ title: '签数最多 ' + MAX_LOTS + ' 签', icon: 'none' })
       return
     }
     if (isNaN(pick) || pick < 1) {

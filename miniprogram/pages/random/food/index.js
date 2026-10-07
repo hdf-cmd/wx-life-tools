@@ -81,8 +81,11 @@ Page({
 
   // ===== 初始化菜品列表 =====
   initFoodList: function () {
-    const customFoods = wx.getStorageSync(STORAGE_KEYS.customFoods) || []
-    const excludedFoods = wx.getStorageSync(STORAGE_KEYS.excludedFoods) || []
+    const rawCustom = wx.getStorageSync(STORAGE_KEYS.customFoods)
+    const rawExcluded = wx.getStorageSync(STORAGE_KEYS.excludedFoods)
+    // 存储被写坏成非数组时，下面的 .filter/.includes 会直接抛，页面卡在空列表
+    const customFoods = Array.isArray(rawCustom) ? rawCustom : []
+    const excludedFoods = Array.isArray(rawExcluded) ? rawExcluded : []
 
     // 可用预设 = 预设 - 排除
     const availableDefaults = DEFAULT_FOODS.filter(

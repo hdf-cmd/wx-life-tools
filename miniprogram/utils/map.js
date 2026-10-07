@@ -21,7 +21,6 @@
 function searchNearby(latitude, longitude, keyword, radius = 3000) {
   return new Promise((resolve, reject) => {
     wx.cloud.callFunction({
-      followSystem: true,
       name: 'nearby',
       data: {
         keyword: keyword,
@@ -30,7 +29,7 @@ function searchNearby(latitude, longitude, keyword, radius = 3000) {
         radius: radius
       }
     }).then(res => {
-      const result = res.result || {}
+      const result = (res && res.result) || {}
       if (result.code === 0) {
         resolve(result.data || [])
       } else {
@@ -51,11 +50,10 @@ function searchNearby(latitude, longitude, keyword, radius = 3000) {
  */
 function getLocationText(latitude, longitude) {
   return wx.cloud.callFunction({
-    followSystem: true,
     name: 'nearby',
     data: { action: 'regeo', latitude: latitude, longitude: longitude }
   }).then(res => {
-    const result = res.result || {}
+    const result = (res && res.result) || {}
     if (result.code === 0) {
       return result.data
     }
@@ -79,6 +77,11 @@ function getSharedLocation() {
     return Promise.resolve({ latitude: cached.latitude, longitude: cached.longitude })
   }
   return new Promise(function (resolve, reject) {
+    // 低版本基础库无 wx.getFuzzyLocation，裸调会毫无响应，这里显式失败让调用方兜底
+    if (typeof wx.getFuzzyLocation !== 'function') {
+      reject(new Error('getFuzzyLocation unsupported'))
+      return
+    }
     wx.getFuzzyLocation({
       type: 'gcj02',
       success: function (res) {
@@ -102,11 +105,10 @@ function getSharedLocation() {
  */
 function getWeather(latitude, longitude) {
   return wx.cloud.callFunction({
-    followSystem: true,
     name: 'nearby',
     data: { action: 'weather', latitude: latitude, longitude: longitude }
   }).then(res => {
-    const result = res.result || {}
+    const result = (res && res.result) || {}
     if (result.code === 0) {
       return result.data
     }

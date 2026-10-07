@@ -1,7 +1,7 @@
 // pages/index/index.js
 // 首页 - 仪表盘式总览（设计语言 v2）
 
-const app = getApp()
+const date = require('../../utils/date.js')
 
 Page({
   data: {
@@ -59,8 +59,12 @@ Page({
   },
 
   onShow: function () {
+    // 节流：切 Tab 回首页会连续触发 onShow，5 秒内不重复拉数据/重跑动效
+    const now = Date.now()
+    if (this._lastRefreshAt && now - this._lastRefreshAt < 5000) return
+    this._lastRefreshAt = now
+
     this.initGreeting()
-    this.updateNickname()
     this.loadStats()
     this.loadWeather()
   },
@@ -70,28 +74,35 @@ Page({
   },
 
   onUnload: function () {
+    this._destroyed = true
     this.clearAnimations()
   },
 
   /**
-   * 数字滚动动效：从 0 缓动到目标值（约 600ms，三次方缓出）
+   * 数字滚动动效：从 0 缓动到目标值（12 帧 / 约 720ms，三次方缓出）
+   * 帧数刻意压低：30ms×600ms 会打出约 20 帧，两个统计键合计 40 次 setData，低端机首屏掉帧
    */
   animateStat: function (key, target, decimals) {
     const that = this
     if (!this._animTimers) this._animTimers = {}
     if (this._animTimers[key]) clearInterval(this._animTimers[key])
 
-    const duration = 600
-    const t0 = Date.now()
+    const totalFrames = 12
+    let frame = 0
     const timer = setInterval(function () {
-      const p = Math.min((Date.now() - t0) / duration, 1)
+      if (that._destroyed) {
+        clearInterval(timer)
+        return
+      }
+      frame++
+      const p = Math.min(frame / totalFrames, 1)
       const eased = 1 - Math.pow(1 - p, 3)
       const val = target * eased
       const patch = {}
       patch['stats.' + key] = decimals > 0 ? val.toFixed(decimals) : String(Math.round(val))
       that.setData(patch)
       if (p >= 1) clearInterval(timer)
-    }, 30)
+    }, 60)
     this._animTimers[key] = timer
   },
 
@@ -138,49 +149,41 @@ Page({
   },
 
   /**
-   * 更新昵称显示
-   */
-  updateNickname: function () {
-    const userInfo = app.globalData.userInfo
-    if (userInfo && userInfo.nickName) {
-      this.setData({ nickname: userInfo.nickName })
-    } else {
-      const cachedName = wx.getStorageSync('userNickname')
-      if (cachedName) {
-        this.setData({ nickname: cachedName })
-      }
-    }
-  },
-
-  /**
    * 加载实时统计（两路并行，互不影响）
    */
   loadStats: function () {
-    // 本月支出
+    // 本月支出（云函数 stats 必须带 YYYY-MM，缺参按失败返回，故此处显式传当月）
     wx.cloud.callFunction({
-      followSystem: true,
       name: 'bookkeeping',
-      data: { action: 'stats' }
+      data: { action: 'stats', month: date.currentMonthStr() }
     }).then(res => {
-      if (res.result.code === 0) {
-        this.animateStat('expense', res.result.data.totalExpense, 2)
+      const r = (res && res.result) || {}
+      if (r.code === 0) {
+        const data = r.data || {}
+        this.animateStat('expense', data.totalExpense || 0, 2)
+      } else {
+        console.error('[index] 本月支出加载失败:', r.msg)
       }
-    }).catch(() => {})
+    }).catch((err) => {
+      console.error('[index] 本月支出加载失败', err)
+    })
 
     // 今日打卡进度 + 全部习惯中的最高连续天数
     wx.cloud.callFunction({
-      followSystem: true,
       name: 'habit',
       data: { action: 'listHabits' }
     }).then(res => {
-      if (res.result.code === 0) {
-        const list = res.result.data || []
+      const r = (res && res.result) || {}
+      if (r.code === 0) {
+        const list = Array.isArray(r.data) ? r.data : []
         const done = list.filter(h => h.checkedIn).length
         const maxStreak = list.reduce((m, h) => Math.max(m, h.streak || 0), 0)
         this.setData({ 'stats.checkin': `${done}/${list.length}` })
         this.animateStat('streak', maxStreak, 0)
       }
-    }).catch(() => {})
+    }).catch((err) => {
+      console.error('[index] 打卡统计加载失败', err)
+    })
   },
 
   /**

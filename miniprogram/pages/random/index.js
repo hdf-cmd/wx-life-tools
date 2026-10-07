@@ -1,5 +1,5 @@
 // pages/random/index.js
-// 随机模块主页 - 双入口卡片
+// 随机模块主页 - 入口卡片列表
 
 Page({
   data: {},
@@ -12,6 +12,18 @@ Page({
 
   goToDrink: function () {
     wx.navigateTo({ url: '/pages/random/drink/index' })
+  },
+
+  goToDecision: function () {
+    wx.navigateTo({ url: '/pages/random/decision/index' })
+  },
+
+  goToNumber: function () {
+    wx.navigateTo({ url: '/pages/random/number/index' })
+  },
+
+  goToGroup: function () {
+    wx.navigateTo({ url: '/pages/random/group/index' })
   },
 
   /**

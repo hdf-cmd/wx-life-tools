@@ -1,5 +1,5 @@
 <!--pages/random/index.wxml-->
-<!--随机模块主页 - 双入口卡片布局-->
+<!--随机模块主页 - 入口卡片列表-->
 
 <view class="page-container">
   <view class="header">
@@ -24,6 +24,36 @@
       <view class="entry-text">
         <text class="entry-title">今天喝什么？</text>
         <text class="entry-desc">奶茶饮品随机选</text>
+      </view>
+      <text class="entry-arrow">›</text>
+    </view>
+
+    <!-- 随机决策器 -->
+    <view class="entry-card" bindtap="goToDecision">
+      <text class="entry-icon">🎯</text>
+      <view class="entry-text">
+        <text class="entry-title">该选哪个？</text>
+        <text class="entry-desc">自定义选项随机决策</text>
+      </view>
+      <text class="entry-arrow">›</text>
+    </view>
+
+    <!-- 随机数生成器 -->
+    <view class="entry-card" bindtap="goToNumber">
+      <text class="entry-icon">🔢</text>
+      <view class="entry-text">
+        <text class="entry-title">随机数</text>
+        <text class="entry-desc">范围内抽数字</text>
+      </view>
+      <text class="entry-arrow">›</text>
+    </view>
+
+    <!-- 抽签分组 -->
+    <view class="entry-card" bindtap="goToGroup">
+      <text class="entry-icon">🧧</text>
+      <view class="entry-text">
+        <text class="entry-title">抽签分组</text>
+        <text class="entry-desc">名单分组、抽号定顺序</text>
       </view>
       <text class="entry-arrow">›</text>
     </view>

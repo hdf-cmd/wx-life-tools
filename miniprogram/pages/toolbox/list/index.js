@@ -99,6 +99,11 @@ Page({
           confirmText: '知道了',
           showCancel: false
         })
+      },
+      // 剪贴板属隐私接口，被系统拦截时原先完全静默，用户以为复制成功
+      fail: err => {
+        console.error('[toolbox-list] 复制失败:', err)
+        wx.showToast({ title: '复制失败，请手动复制链接', icon: 'none' })
       }
     })
   }

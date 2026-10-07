@@ -368,24 +368,37 @@ Page({
    * 加载历史记录
    */
   loadHistory: function () {
-    const history = wx.getStorageSync('drink_history') || []
-    this.setData({ historyList: history })
+    const raw = wx.getStorageSync('drink_history')
+    this.setData({ historyList: Array.isArray(raw) ? raw : [] })
   },
 
   /**
    * 加载自定义饮品
    */
   loadCustomDrinks: function () {
-    const customDrinks = wx.getStorageSync('drink_customDrinks') || {}
-    this.setData({ customDrinks: customDrinks })
+    this.setData({ customDrinks: this._normalizeBrandMap(wx.getStorageSync('drink_customDrinks')) })
   },
 
   /**
    * 加载排除饮品
    */
   loadExcludedDrinks: function () {
-    const excludedDrinks = wx.getStorageSync('drink_excludedDrinks') || {}
-    this.setData({ excludedDrinks: excludedDrinks })
+    this.setData({ excludedDrinks: this._normalizeBrandMap(wx.getStorageSync('drink_excludedDrinks')) })
+  },
+
+  /**
+   * 存储读回防御：把 { 品牌名: [饮品名] } 归一化，
+   * 结构被写坏（非对象 / 值不是数组）时下游 .filter/.includes/.push 不会再抛
+   */
+  _normalizeBrandMap: function (raw) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
+    const out = {}
+    Object.keys(raw).forEach(k => {
+      if (Array.isArray(raw[k])) {
+        out[k] = raw[k].filter(name => typeof name === 'string' && name.length > 0)
+      }
+    })
+    return out
   },
 
   // ========== 附近品牌 ==========
@@ -394,6 +407,12 @@ Page({
    * 点击"附近品牌"按钮
    */
   goNearby: function () {
+    // 低版本基础库没有模糊定位，裸调会点了没反应
+    if (typeof wx.getFuzzyLocation !== 'function') {
+      util.showToast('请升级微信后使用')
+      return
+    }
+
     this.setData({ locationLoading: true, locationText: '', locationFallback: false })
 
     // 与首页天气共享定位（10 分钟内复用缓存）
@@ -402,11 +421,61 @@ Page({
       this.resolveLocationText(loc.latitude, loc.longitude)
       this.searchNearbyBrands(loc.latitude, loc.longitude)
     }).catch((err) => {
-      // 模拟器定位失败时，使用默认坐标（北京）作为备选
-      console.warn('[附近品牌] 定位失败，使用默认坐标:', err && err.errMsg)
+      const msg = (err && (err.errMsg || err.message)) || ''
+      // 用户拒绝授权：不进附近模式，绝不拿北京坐标冒充当前位置、也不写地址文字
+      if (/auth|deny/i.test(msg)) {
+        this.setData({ locationLoading: false })
+        wx.showModal({
+          title: '需要位置权限',
+          content: '「附近品牌」需要定位权限才能查找周边门店，请在设置中允许获取位置信息',
+          confirmText: '去设置',
+          success: res => {
+            if (res.confirm) wx.openSetting()
+          }
+        })
+        return
+      }
+      // 非拒绝类失败（GPS 不可用 / 模拟器）才用兜底坐标；
+      // 且不调 resolveLocationText，让 wxml 原有的"未能解析位置（已按默认位置计算）"提示露出
+      console.warn('[附近品牌] 定位失败，使用默认坐标:', msg || err)
       this.setData({ locationFallback: true })
-      this.resolveLocationText(39.9042, 116.4074)
       this.searchNearbyBrands(39.9042, 116.4074)
+    })
+  },
+
+  /**
+   * 定位类缓存按前缀清理（写入前调用）
+   * key 带 3 位小数坐标（≈110m 网格），每换一个地点新增一条且永不清理，
+   * 所以先删掉超过 24h 的，同一前缀仍超过 5 条时按时间删最旧的
+   */
+  _pruneLocationCaches: function () {
+    const MAX_AGE = 24 * 3600 * 1000
+    const MAX_KEEP = 5
+    const prefixes = ['locText_', 'nearby_pois_']
+    let keys = []
+    try {
+      keys = (wx.getStorageInfoSync() || {}).keys || []
+    } catch (e) {
+      return
+    }
+    prefixes.forEach(prefix => {
+      const matched = keys.filter(k => typeof k === 'string' && k.indexOf(prefix) === 0)
+      const fresh = []
+      matched.forEach(k => {
+        let val = null
+        try { val = wx.getStorageSync(k) } catch (e) { /* 忽略 */ }
+        const time = (val && typeof val === 'object') ? val.time : 0
+        if (time && Date.now() - time < MAX_AGE) {
+          fresh.push({ key: k, time: time })
+        } else {
+          try { wx.removeStorageSync(k) } catch (e) { /* 忽略 */ }
+        }
+      })
+      if (fresh.length <= MAX_KEEP) return
+      fresh.sort((a, b) => a.time - b.time)
+      fresh.slice(0, fresh.length - MAX_KEEP).forEach(item => {
+        try { wx.removeStorageSync(item.key) } catch (e) { /* 忽略 */ }
+      })
     })
   },
 
@@ -425,6 +494,7 @@ Page({
     map.getLocationText(latitude, longitude).then(info => {
       if (info && info.address) {
         const text = info.address
+        this._pruneLocationCaches()
         try {
           wx.setStorageSync(cacheKey, { text: text, time: Date.now() })
         } catch (e) { /* 缓存失败忽略 */ }
@@ -451,6 +521,7 @@ Page({
     const poisPromise = useCached
       ? Promise.resolve(cached.pois)
       : map.searchNearby(latitude, longitude, '奶茶', 3000).then(pois => {
+          this._pruneLocationCaches()
           try {
             wx.setStorageSync(cacheKey, { pois: pois, time: Date.now() })
           } catch (e) { /* 缓存写入失败忽略 */ }
@@ -484,8 +555,9 @@ Page({
             })
           })
           const dist = minDist < Infinity ? minDist : null
+          // 显式判 null：dist 为 0（人正在店里）时也要显示"0m"，不能因 falsy 把文本和高亮一起吞掉
           nearbyBrands.push(Object.assign({}, this.data.brands.find(b => b.name === name), { distance: dist,
-            distanceText: dist ? (dist < 1000 ? dist + 'm' : (dist / 1000).toFixed(1) + 'km') : '' }))
+            distanceText: dist === null ? '' : (dist < 1000 ? dist + 'm' : (dist / 1000).toFixed(1) + 'km') }))
         }
       })
 

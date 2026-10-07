@@ -45,13 +45,13 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: #F5F5F5;
+  background: var(--color-bg-hover);
   font-size: 24rpx;
   color: var(--color-text-secondary);
 }
 
 .month-arrow:active {
-  background: #E8E8E8;
+  background: var(--color-border);
 }
 
 .month-text {

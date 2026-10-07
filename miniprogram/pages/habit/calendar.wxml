@@ -25,11 +25,11 @@
   </view>
 
   <!-- 日历网格 -->
-  <view class="calendar-grid" wx:if="{{!loading}}">
+  <view class="calendar-grid" wx:if="{{!loading && !loadError}}">
     <view
       class="cal-day {{item.isEmpty ? 'empty' : ''}} {{item.isChecked ? 'checked' : ''}} {{item.isToday ? 'today' : ''}}"
       wx:for="{{calendarDays}}"
-      wx:key="date"
+      wx:key="uid"
     >
       <text class="day-text" wx:if="{{!item.isEmpty}}">{{item.day}}</text>
       <view class="check-dot" wx:if="{{item.isChecked}}">
@@ -39,8 +39,13 @@
   </view>
 
   <!-- 加载状态 -->
-  <view class="cal-loading" wx:else>
+  <view class="cal-loading" wx:elif="{{loading}}">
     <text>加载中...</text>
+  </view>
+
+  <!-- 加载失败态（与「本月没打卡」的空态分开，点一下重试） -->
+  <view class="cal-loading" wx:else bindtap="loadLogs">
+    <text class="month-text">⚠️ 打卡记录加载失败，点此重新加载</text>
   </view>
 
   <!-- 底部统计 -->
@@ -51,8 +56,8 @@
     </view>
     <view class="stat-divider">/</view>
     <view class="stat-item">
-      <text class="stat-num">{{totalDays}}</text>
-      <text class="stat-label">本月天数</text>
+      <text class="stat-num">{{expectedDays}}</text>
+      <text class="stat-label">本月应打卡</text>
     </view>
     <view class="stat-divider">|</view>
     <view class="stat-item">

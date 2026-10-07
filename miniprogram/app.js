@@ -35,7 +35,6 @@ App({
     const MAX_RETRY = 3
 
     wx.cloud.callFunction({
-      followSystem: true,
       name: 'login',
       data: {},
       success: res => {

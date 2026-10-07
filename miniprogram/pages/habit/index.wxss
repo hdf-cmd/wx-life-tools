@@ -145,7 +145,7 @@
   width: 88rpx;
   height: 88rpx;
   border-radius: 20rpx;
-  background: #F5F5F5;
+  background: var(--color-bg-hover);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -275,7 +275,7 @@
 
 .action-sheet {
   width: 100%;
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 24rpx 24rpx 0 0;
   padding-bottom: env(safe-area-inset-bottom);
 }
@@ -358,4 +358,24 @@
   top: -9999rpx;
   width: 600px;
   height: 900px;
+}
+
+/* ===== 深色模式覆盖 =====
+   绿色系浅底是装饰性色块，无法用中性变量替换，只在深色下压暗，浅色表现保持原样 */
+@media (prefers-color-scheme: dark) {
+  .encourage-bar {
+    background: rgba(76, 175, 80, 0.16);
+  }
+
+  .encourage-text {
+    color: #81C784;
+  }
+
+  .habit-card.checked {
+    background: #18211A;
+  }
+
+  .habit-card.checked .card-icon {
+    background: rgba(76, 175, 80, 0.18);
+  }
 }

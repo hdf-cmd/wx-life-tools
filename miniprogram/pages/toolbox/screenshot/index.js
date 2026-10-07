@@ -14,6 +14,32 @@ Page({
     videoReady: false  // 视频元数据是否就绪
   },
 
+  // 待清理的 setTimeout 句柄（页面卸载后回调仍会跑，可能带着 showLoading 一起泄漏）
+  _timers: null,
+
+  onUnload: function () {
+    this._destroyed = true
+    if (this._timers) {
+      this._timers.forEach(function (id) { clearTimeout(id) })
+      this._timers = null
+    }
+    // wx.showLoading 是全局遮罩，不随页面销毁自动收掉，离开时兜底关掉
+    if (this.data.extracting) wx.hideLoading()
+  },
+
+  /**
+   * 登记可清理的延时（页面已卸载则不再执行回调）
+   */
+  _later: function (fn, ms) {
+    if (!this._timers) this._timers = []
+    const id = setTimeout(() => {
+      this._timers = (this._timers || []).filter(t => t !== id)
+      if (this._destroyed) return
+      fn()
+    }, ms)
+    this._timers.push(id)
+  },
+
   /**
    * 选择视频并读取元数据
    */
@@ -77,7 +103,13 @@ Page({
       return
     }
     if (this.data.extracting) return
+    // 截图链路依赖 canvas 导出图片，低版本基础库裸调会点了没反应
+    if (typeof wx.canvasToTempFilePath !== 'function') {
+      wx.showToast({ title: '请升级微信后使用', icon: 'none' })
+      return
+    }
 
+    this._retryCount = 0
     this.setData({ extracting: true, frameImage: '' })
     wx.showLoading({ title: '提取中...', mask: true })
 
@@ -87,7 +119,7 @@ Page({
     videoCtx.seek(this.data.currentTime)
 
     // 2. 等 seek 渲染完成后绘制（已播放过的视频 seek 后画面就绪较快）
-    setTimeout(() => {
+    this._later(() => {
       this._captureFrame()
     }, 900)
   },
@@ -96,9 +128,11 @@ Page({
    * 用 canvas 截取当前视频画面
    */
   _captureFrame: function () {
+    if (this._destroyed) return
     // 获取 video 上下文（canvas drawImage 的源）
     wx.createSelectorQuery().in(this)
       .select('#screenshot-video').context().exec(videoRes => {
+        if (this._destroyed) return
         if (!videoRes || !videoRes[0] || !videoRes[0].context) {
           this._captureFail('获取视频上下文失败')
           return
@@ -108,6 +142,7 @@ Page({
         // 获取 2d canvas 节点
         wx.createSelectorQuery().in(this)
           .select('#frame-canvas').fields({ node: true }).exec(canvasRes => {
+            if (this._destroyed) return
             if (!canvasRes || !canvasRes[0] || !canvasRes[0].node) {
               this._captureFail('获取画布失败')
               return
@@ -141,6 +176,7 @@ Page({
               fileType: 'jpg',
               quality: 0.92,
               success: res => {
+                if (this._destroyed) return
                 // 校验是否截到空白图（文件过小通常意味着空白）
                 wx.getFileInfo({
                   filePath: res.tempFilePath,
@@ -160,6 +196,7 @@ Page({
                 })
               },
               fail: err => {
+                if (this._destroyed) return
                 console.error('[capture] 导出失败:', err)
                 this._captureFail('导出图片失败')
               }
@@ -169,22 +206,23 @@ Page({
   },
 
   /**
-   * 安卓兜底：视频从未播放过时可能截到空白，先播 200ms 再截
+   * 安卓兜底：视频从未播放过时可能截到空白，先播 200ms 再截（只重试一次）
    */
   _retryAfterPlay: function () {
-    if (this._retried) {
+    // 原实现在递归调用前把 _retried 复位，一直截到空白帧时无限自旋（每轮约 1.2s），
+    // extracting 与 wx.showLoading 永不解除
+    if ((this._retryCount || 0) >= 1) {
       this._captureFail('截图失败，请先点播放按钮播一下视频再试')
       return
     }
-    this._retried = true
+    this._retryCount = (this._retryCount || 0) + 1
     console.warn('[capture] 疑似空白帧，播放后重试')
     const videoCtx = wx.createVideoContext('screenshot-video', this)
     videoCtx.play()
-    setTimeout(() => {
+    this._later(() => {
       videoCtx.pause()
       videoCtx.seek(this.data.currentTime)
-      setTimeout(() => {
-        this._retried = false
+      this._later(() => {
         this._captureFrame()
       }, 900)
     }, 300)
@@ -209,7 +247,9 @@ Page({
         wx.showToast({ title: '已保存到相册', icon: 'success' })
       },
       fail: err => {
-        if (err.errMsg && err.errMsg.includes('auth')) {
+        const msg = (err && err.errMsg) || ''
+        // 拒绝授权与系统拦截都走引导，其他失败把原因透出来（原先只判 'auth'，一律吞成"保存失败"）
+        if (/auth|deny/i.test(msg)) {
           wx.showModal({
             title: '提示',
             content: '需要相册权限才能保存图片，请前往设置开启',
@@ -218,7 +258,8 @@ Page({
             }
           })
         } else {
-          wx.showToast({ title: '保存失败', icon: 'none' })
+          console.error('[screenshot] 保存失败:', msg)
+          wx.showToast({ title: '保存失败：' + (msg.replace(/^[\w.]+:fail\s*/i, '') || '未知原因'), icon: 'none' })
         }
       }
     })

@@ -273,3 +273,16 @@
   font-size: var(--font-sm);
   color: var(--color-text-placeholder);
 }
+
+/* 汇总超出单次查询上限时的明示条 */
+.stats-truncated {
+  margin: 0 24rpx 16rpx;
+  padding: 14rpx 20rpx;
+  border-radius: 12rpx;
+  background: rgba(255, 152, 0, 0.12);
+}
+
+.stats-truncated-text {
+  font-size: var(--font-xs);
+  color: var(--color-warning);
+}
