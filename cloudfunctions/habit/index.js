@@ -7,6 +7,13 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
 const _ = db.command
 
+// 云函数端 get() 不写 limit 时默认且最多 100 条，连续天数类聚合必须显式抬到上限
+const MAX_ROWS = 1000
+
+function isValidDateStr(s) {
+  return typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s)
+}
+
 // 云函数入口
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext()
@@ -38,11 +45,21 @@ exports.main = async (event, context) => {
           return { code: -1, msg: '无权修改该习惯' }
         }
         const updateData = {}
-        if (name) updateData.name = name
-        if (icon) updateData.icon = icon
-        if (frequency) updateData.frequency = frequency
-        if (weekDays !== undefined) updateData.weekDays = weekDays
-        if (targetDays !== undefined) updateData.targetDays = targetDays
+        if (name !== undefined) {
+          const trimmed = String(name).trim()
+          if (!trimmed) return { code: -1, msg: '请输入习惯名称' }
+          if (trimmed.length > 20) return { code: -1, msg: '习惯名称不能超过 20 个字符' }
+          updateData.name = trimmed
+        }
+        if (icon) updateData.icon = String(icon).slice(0, 8)
+        if (frequency) {
+          if (!['daily', 'weekly'].includes(frequency)) return { code: -1, msg: '频率参数错误' }
+          updateData.frequency = frequency
+        }
+        if (Array.isArray(weekDays)) {
+          updateData.weekDays = weekDays.filter(d => Number.isInteger(d) && d >= 1 && d <= 7)
+        }
+        if (targetDays !== undefined) updateData.targetDays = Math.max(parseInt(targetDays, 10) || 0, 0)
         updateData.updatedAt = new Date()
         await db.collection('habits').where({ _id: habitId }).update({ data: updateData })
         return { code: 0, msg: '更新成功' }
@@ -62,14 +79,16 @@ exports.main = async (event, context) => {
  */
 async function addHabit(openid, params) {
   const { name, icon, frequency, targetDays } = params
-  if (!name) return { code: -1, msg: '请输入习惯名称' }
+  const habitName = String(name || '').trim()
+  if (!habitName) return { code: -1, msg: '请输入习惯名称' }
+  if (habitName.length > 20) return { code: -1, msg: '习惯名称不能超过 20 个字符' }
 
   try {
     const result = await db.collection('habits').add({
       data: {
         _openid: openid,
-        name: name,
-        icon: icon || '📌',
+        name: habitName,
+        icon: String(icon || '📌').slice(0, 8),
         frequency: frequency || 'daily', // daily | weekly
         weekDays: params.weekDays || [], // 每周模式下的具体周几
         targetDays: targetDays || 0,
@@ -93,6 +112,7 @@ async function listHabits(openid) {
       const result = await db.collection('habits')
         .where({ _openid: openid })
         .orderBy('createdAt', 'asc')
+        .limit(MAX_ROWS)
         .get()
       habits = result.data || []
     } catch (e) {
@@ -111,6 +131,7 @@ async function listHabits(openid) {
     try {
       const { data: allTodayLogs } = await db.collection('habit_logs')
         .where({ _openid: openid, date: today })
+        .limit(MAX_ROWS)
         .get()
       allTodayLogs.forEach(log => {
         if (!todayLogsMap[log.habitId]) todayLogsMap[log.habitId] = []
@@ -126,6 +147,8 @@ async function listHabits(openid) {
     try {
       const { data: allLogs } = await db.collection('habit_logs')
         .where({ _openid: openid, date: _.gte(startDate) })
+        .field({ habitId: 1, date: 1 })
+        .limit(MAX_ROWS)
         .get()
       allLogs.forEach(log => {
         if (!allLogsMap[log.habitId]) allLogsMap[log.habitId] = []
@@ -162,6 +185,18 @@ async function checkIn(openid, params) {
   if (!habitId) return { code: -1, msg: '缺少习惯ID' }
   const checkDate = date || getTodayStr()
 
+  // 前端 todayDate 只在 onLoad 算，跨过零点仍会提交昨天的日期；服务端必须自己把关
+  if (!isValidDateStr(checkDate)) {
+    return { code: -1, msg: '打卡日期格式错误（应为 YYYY-MM-DD）' }
+  }
+  const today = getTodayStr()
+  if (checkDate > today) {
+    return { code: -1, msg: '不能打卡未来日期' }
+  }
+  if (checkDate < getDateStrBefore(today, 365)) {
+    return { code: -1, msg: '只能补打近一年内的卡' }
+  }
+
   // 幂等键：同人+同习惯+同日恒定 → 并发重复写入由数据库主键唯一性兜底拦截
   const dedupeId = crypto.createHash('md5')
     .update(openid + '|' + habitId + '|' + checkDate)
@@ -191,7 +226,7 @@ async function checkIn(openid, params) {
       _openid: openid,
       habitId: habitId,
       date: checkDate,
-      note: note || '',
+      note: String(note || '').slice(0, 100),
       createdAt: db.serverDate()
     }
     let result
@@ -234,6 +269,9 @@ async function checkIn(openid, params) {
 async function getLogs(openid, params) {
   const { habitId, month } = params
   if (!habitId) return { code: -1, msg: '缺少习惯ID' }
+  if (month && !/^\d{4}-\d{2}$/.test(month)) {
+    return { code: -1, msg: '月份格式错误（应为 YYYY-MM）' }
+  }
 
   try {
     // 构造月份起止日期
@@ -395,6 +433,8 @@ async function calcStreak(openid, habitId, frequency, weekDays) {
   const startDate = getDateStrBefore(today, 365)
   const { data: allLogs } = await db.collection('habit_logs')
     .where({ _openid: openid, habitId: habitId, date: _.gte(startDate) })
+    .field({ date: 1 })
+    .limit(MAX_ROWS)
     .get()
   return calcStreakFromLogs(allLogs, today, frequency, weekDays)
 }

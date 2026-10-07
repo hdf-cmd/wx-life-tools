@@ -1,6 +1,7 @@
 // cloudfunctions/bookkeeping/index.js
 // 记账模块云函数 - 处理账单的增删查统计
 
+const crypto = require('crypto')
 const cloud = require('wx-server-sdk')
 
 cloud.init({
@@ -10,6 +11,36 @@ cloud.init({
 const db = cloud.database()
 const _ = db.command
 const $ = db.command.aggregate
+
+// 云函数端 get() 不写 limit 时默认且最多 100 条，聚合类查询必须显式抬到上限
+const MAX_ROWS = 1000
+
+/**
+ * 北京时区（UTC+8）的今日 YYYY-MM-DD
+ * 禁用 toISOString().slice(0,10)：那是 UTC 日期，北京时间 00:00–07:59 会算成昨天
+ */
+function localTodayStr() {
+  const t = new Date(Date.now() + 8 * 60 * 60 * 1000)
+  return t.toISOString().slice(0, 10)
+}
+
+function isValidDateStr(s) {
+  return typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s)
+}
+
+function isValidMonthStr(s) {
+  if (typeof s !== 'string' || !/^\d{4}-\d{2}$/.test(s)) return false
+  const m = parseInt(s.slice(5), 10)
+  return m >= 1 && m <= 12
+}
+
+/**
+ * 判断是否主键冲突（重复 _id）：并发双写时用于把"对手已写入"与真实错误区分开
+ */
+function isDuplicateErr(e) {
+  if (!e) return false
+  return /duplicate|already exists|-502107/i.test((e.errMsg || '') + ' ' + (e.message || '') + ' ' + (e.errCode || ''))
+}
 
 /**
  * 云函数主入口
@@ -69,18 +100,25 @@ async function addBill(data, openid) {
     if (!category) {
       return { code: -1, msg: '请选择分类' }
     }
+    const amt = Number(amount)
+    if (!isFinite(amt) || amt <= 0) {
+      return { code: -1, msg: '金额必须大于0' }
+    }
+    if (date && !isValidDateStr(date)) {
+      return { code: -1, msg: '日期格式错误（应为 YYYY-MM-DD）' }
+    }
 
     // 处理金额浮点精度
-    const safeAmount = Math.round(amount * 100) / 100
+    const safeAmount = Math.round(amt * 100) / 100
 
     const result = await db.collection('accounts').add({
       data: {
         _openid: openid,
         amount: safeAmount,
         type,
-        category,
-        note: note || '',
-        date: date || new Date().toISOString().slice(0, 10),
+        category: String(category).slice(0, 20),
+        note: String(note || '').slice(0, 200),
+        date: date || localTodayStr(),
         createdAt: new Date()
       }
     })
@@ -109,20 +147,22 @@ async function listBills(data, openid) {
     const page = Math.max(parseInt(data.page, 10) || 1, 1)
     const limit = 50
 
-    if (!month) {
-      return { code: -1, msg: '请指定月份' }
+    if (!isValidMonthStr(month)) {
+      return { code: -1, msg: '请指定月份（YYYY-MM）' }
     }
 
     // 使用范围查询替代正则匹配，避免 RegExp 与 orderBy 冲突导致查询失败
     const startOfMonth = month
     const endOfMonth = month + '-32'  // 保证大于该月所有日期 (YYYY-MM-DD)
 
+    // date 是天粒度，必须补 _id 次级排序键，否则同日多笔跨页顺序不稳定 → 翻页重复/漏条
     const result = await db.collection('accounts')
       .where({
         _openid: openid,
         date: _.gte(startOfMonth).and(_.lt(endOfMonth))
       })
       .orderBy('date', 'desc')
+      .orderBy('_id', 'desc')
       .skip((page - 1) * limit)
       .limit(limit)
       .get()
@@ -150,11 +190,12 @@ async function getStats(data, openid) {
   try {
     const { month } = data
 
-    if (!month) {
-      return { code: -1, msg: '请指定月份' }
+    if (!isValidMonthStr(month)) {
+      return { code: -1, msg: '请指定月份（YYYY-MM）' }
     }
 
     // 获取该月所有账单（范围查询，与 listBills 一致）
+    // 必须显式 limit：不写时云函数端默认且最多只返回 100 条，会让统计静默少算
     const startOfMonth = month + '-01'
     const endOfMonth = month + '-32'
     const result = await db.collection('accounts')
@@ -162,22 +203,23 @@ async function getStats(data, openid) {
         _openid: openid,
         date: _.gte(startOfMonth).and(_.lt(endOfMonth))
       })
+      .limit(MAX_ROWS)
       .get()
 
     const bills = result.data
 
-    // 计算总收入、总支出
-    let totalIncome = 0
-    let totalExpense = 0
+    // 全部以「分」为整数累加，避免浮点误差逐笔放大
+    let incomeCents = 0
+    let expenseCents = 0
     const categoryMap = {}
 
     bills.forEach(bill => {
-      const amount = Math.round(bill.amount * 100) / 100
+      const cents = Math.round((Number(bill.amount) || 0) * 100)
 
       if (bill.type === 'income') {
-        totalIncome += amount
+        incomeCents += cents
       } else {
-        totalExpense += amount
+        expenseCents += cents
       }
 
       // 按分类汇总（支出）
@@ -185,30 +227,28 @@ async function getStats(data, openid) {
         if (!categoryMap[bill.category]) {
           categoryMap[bill.category] = 0
         }
-        categoryMap[bill.category] += amount
+        categoryMap[bill.category] += cents
       }
     })
-
-    // 处理浮点精度
-    totalIncome = Math.round(totalIncome * 100) / 100
-    totalExpense = Math.round(totalExpense * 100) / 100
 
     // 转换分类数据为数组并排序
     const categoryStats = Object.keys(categoryMap).map(key => ({
       category: key,
-      amount: Math.round(categoryMap[key] * 100) / 100,
-      percent: totalExpense > 0
-        ? Math.round((categoryMap[key] / totalExpense) * 10000) / 100
+      amount: categoryMap[key] / 100,
+      percent: expenseCents > 0
+        ? Math.round((categoryMap[key] / expenseCents) * 10000) / 100
         : 0
     })).sort((a, b) => b.amount - a.amount)
 
     return {
       code: 0,
       data: {
-        totalIncome,
-        totalExpense,
-        balance: Math.round((totalIncome - totalExpense) * 100) / 100,
-        categoryStats
+        totalIncome: incomeCents / 100,
+        totalExpense: expenseCents / 100,
+        balance: (incomeCents - expenseCents) / 100,
+        categoryStats,
+        truncated: bills.length === MAX_ROWS,
+        billCount: bills.length
       }
     }
   } catch (err) {
@@ -229,7 +269,7 @@ async function getBill(data, openid) {
       return { code: -1, msg: '缺少账单ID' }
     }
     const bill = await db.collection('accounts').doc(id).get()
-    if (bill.data._openid !== openid) {
+    if (!bill.data || bill.data._openid !== openid) {
       return { code: -1, msg: '无权查看该账单' }
     }
     return { code: 0, data: bill.data }
@@ -250,7 +290,8 @@ async function updateBill(data, openid) {
     if (!id) {
       return { code: -1, msg: '缺少账单ID' }
     }
-    if (!amount || amount <= 0) {
+    const amt = Number(amount)
+    if (!isFinite(amt) || amt <= 0) {
       return { code: -1, msg: '金额必须大于0' }
     }
     if (!type || !['income', 'expense'].includes(type)) {
@@ -259,19 +300,22 @@ async function updateBill(data, openid) {
     if (!category) {
       return { code: -1, msg: '请选择分类' }
     }
+    if (date && !isValidDateStr(date)) {
+      return { code: -1, msg: '日期格式错误（应为 YYYY-MM-DD）' }
+    }
 
     // 所有权校验（与 delete 同模式）
     const bill = await db.collection('accounts').doc(id).get()
-    if (bill.data._openid !== openid) {
+    if (!bill.data || bill.data._openid !== openid) {
       return { code: -1, msg: '无权修改该账单' }
     }
 
     await db.collection('accounts').doc(id).update({
       data: {
-        amount: Math.round(amount * 100) / 100,
+        amount: Math.round(amt * 100) / 100,
         type: type,
-        category: category,
-        note: note || '',
+        category: String(category).slice(0, 20),
+        note: String(note || '').slice(0, 200),
         date: date || bill.data.date,
         updatedAt: new Date()
       }
@@ -304,13 +348,15 @@ async function getTrend(data, openid) {
       map[key] = { income: 0, expense: 0 }
     }
 
-    // 一次范围查询（云函数端 limit 上限 1000，个人记账场景 6 个月足够）
+    // 一次范围查询（显式 limit；不写时云函数端默认只取 100 条）
+    // 必须带上界：否则该月之后新增的账单会白占 limit 额度，把窗口内的数据挤掉
+    const lastMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0')
     const result = await db.collection('accounts')
       .where({
         _openid: openid,
-        date: _.gte(startMonth + '-01')
+        date: _.gte(startMonth + '-01').and(_.lt(lastMonth + '-32'))
       })
-      .limit(1000)
+      .limit(MAX_ROWS)
       .get()
 
     // 内存按月聚合（以分为单位整数累加）
@@ -332,7 +378,7 @@ async function getTrend(data, openid) {
       expense: map[key].expense / 100
     }))
 
-    return { code: 0, data: list }
+    return { code: 0, data: list, truncated: result.data.length === MAX_ROWS }
   } catch (err) {
     console.error('[getTrend] 错误:', err)
     return { code: -1, msg: '获取趋势失败', error: err.message }
@@ -345,8 +391,8 @@ async function getTrend(data, openid) {
 async function exportBills(data, openid) {
   try {
     const { month } = data
-    if (!month) {
-      return { code: -1, msg: '请指定月份' }
+    if (!isValidMonthStr(month)) {
+      return { code: -1, msg: '请指定月份（YYYY-MM）' }
     }
 
     const startOfMonth = month
@@ -358,10 +404,12 @@ async function exportBills(data, openid) {
         date: _.gte(startOfMonth).and(_.lt(endOfMonth))
       })
       .orderBy('date', 'desc')
-      .limit(1000)
+      .orderBy('_id', 'desc')
+      .limit(MAX_ROWS)
       .get()
 
-    return { code: 0, data: result.data }
+    // truncated 让前端能提示"仅导出前 1000 条"，不再静默截断
+    return { code: 0, data: result.data, truncated: result.data.length === MAX_ROWS }
   } catch (err) {
     console.error('[exportBills] 错误:', err)
     return { code: -1, msg: '导出失败', error: err.message }
@@ -376,8 +424,8 @@ async function exportBills(data, openid) {
 async function getBudget(data, openid) {
   try {
     const { month } = data
-    if (!month) {
-      return { code: -1, msg: '请指定月份' }
+    if (!isValidMonthStr(month)) {
+      return { code: -1, msg: '请指定月份（YYYY-MM）' }
     }
 
     let res
@@ -408,10 +456,14 @@ async function getBudget(data, openid) {
 async function setBudget(data, openid) {
   try {
     const { month } = data
-    const amount = Math.round((parseFloat(data.amount) || 0) * 100) / 100
+    const rawAmount = Number(data.amount)
+    if (!isFinite(rawAmount)) {
+      return { code: -1, msg: '预算金额无效' }
+    }
+    const amount = Math.round(rawAmount * 100) / 100
 
-    if (!month) {
-      return { code: -1, msg: '请指定月份' }
+    if (!isValidMonthStr(month)) {
+      return { code: -1, msg: '请指定月份（YYYY-MM）' }
     }
     if (amount < 0) {
       return { code: -1, msg: '金额不能为负' }
@@ -433,9 +485,18 @@ async function setBudget(data, openid) {
         data: { amount: amount, updatedAt: new Date() }
       })
     } else {
-      await db.collection('budgets').add({
-        data: { _openid: openid, month: month, amount: amount, createdAt: new Date() }
-      })
+      // 幂等 _id：并发下两次"查无记录再写"只会落一条预算（主键唯一性兜底），与 habit_logs 同方案
+      const budgetId = crypto.createHash('md5').update(openid + '|' + month).digest('hex')
+      try {
+        await db.collection('budgets').add({
+          data: { _id: budgetId, _openid: openid, month: month, amount: amount, createdAt: new Date() }
+        })
+      } catch (e) {
+        if (!isDuplicateErr(e)) throw e
+        await db.collection('budgets').doc(budgetId).update({
+          data: { amount: amount, updatedAt: new Date() }
+        })
+      }
     }
 
     return { code: 0, msg: amount > 0 ? '预算已设置' : '预算已清除' }
@@ -461,7 +522,7 @@ async function deleteBill(data, openid) {
     // 验证该账单属于当前用户
     const bill = await db.collection('accounts').doc(id).get()
 
-    if (bill.data._openid !== openid) {
+    if (!bill.data || bill.data._openid !== openid) {
       return { code: -1, msg: '无权删除该账单' }
     }
 

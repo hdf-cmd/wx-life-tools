@@ -19,6 +19,8 @@ const https = require('https')
 const AMAP_KEY = (process.env.AMAP_KEY || '').trim()
 const API_HOST = 'restapi.amap.com'
 const API_PATH = '/v3/place/around'
+// 函数超时见 config.json（20s）：weather 分支要串行两次高德请求（regeo→weatherInfo），
+// 单次预算 5s 时最坏 10s，必须留在函数超时之内，否则平台先杀、前端只拿到裸超时
 const REQUEST_TIMEOUT = 5000
 const USER_AGENT = 'wx-cloudfunction'
 // =======================
