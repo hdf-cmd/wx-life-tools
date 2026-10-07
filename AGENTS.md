@@ -5,6 +5,17 @@
 ## 📌 项目交接
 
 ### 进行到
+- **体验补强第二轮 ✅ 已完成（2026-10-07，接在规范审查轮之后，3 个提交）**
+  - **习惯可撤销打卡**：`cloudfunctions/habit/index.js` 新增 `unCheckIn`。定位方式与 `checkIn` 对称（同一确定性 `_id = md5(openid|habitId|date)`），因此也吃得下幂等键修复前的随机 `_id` 历史数据；删除后**以"重查还剩几条"为唯一判据**——`remove` 抛错但记录确已消失（并发撤销）算成功，反之如实返回"未完成"，不谎报。入口两处：列表页长按卡片菜单（撤销今日）、日历页点已打卡的日期（撤销任意一天，日历页刻意只放撤销不放出卡，避免同页两种相反写操作误触）
+  - **习惯可导出**：新增 `exportLogs`，习惯名在服务端解析后随 CSV 行返回（已删除的习惯给占位名 `（已删除的习惯）`）；**单次 `get()` 上限 1000 条用 `skip` 翻页绕过**（9 个习惯跑一年就超 1000），上限 5000 并带 `truncated`；翻页按 `_id` 排序保证不重不漏，返回前再按日期重排
+  - 云函数**已部署并探针验证在线**：`invokeFunction {action:'unCheckIn'}` → `缺少习惯ID`、`{action:'exportLogs',month:'2026-9'}` → `月份格式错误（应为 YYYY-MM）`（旧代码会回 `未知操作`）。⚠️ 部署后**立刻**探针会读到旧代码——第一次探针就回了 `未知操作`，隔了一轮才回新结果，`tcb fn detail` 同期已能看到新代码。结论：**部署与生效之间有延迟，探针要复跑**
+  - **诚实纠错**：上一轮记的"分类图标已收敛到 `utils/category.js`"**只对了一半**——当时只改了消费方（列表页/统计页用 `iconOf`），`pages/bookkeeping/add.js` 仍自持一份 16 行分类数组。今天两边取值恰好一致所以没暴雷，但在 add 页加一个分类就会让列表页/统计页静默回落 📦。现改为**以两个分类数组为准、`CATEGORY_ICONS` 由它们派生**，`add.js` 只引用不再自存
+  - 新增 `miniprogram/utils/csv.js`（转义+BOM），记账导出与新增的习惯导出共用，不再两处各写一遍 escape
+  - 新增 `tests/run-all.js`：**自动发现** `tests/*.test.js`，防止新测试文件被漏跑。测试 24 → **51 例**（habit 8→18、category 7、csv 10、bookkeeping 11、skeleton 5）
+  - 变异检验：把「其他」在两个分类数组里配成不同图标 → 立刻 3 例失败。**第一次变异选错了对象**（改 `医疗` 的图标不该被抓——派生映射的本意就是改一处两边同步，那是正确行为不是缺陷），换成同名不同图标才是有效变异
+  - **深色模式补漏（静态核对过，未目检）**：`habit/add`、`random/index`、`random/food`、`random/decision` 四个页面原先**完全没有 `@media (prefers-color-scheme: dark)` 块**，页底 `#FAFAFA`、输入框 `#F8F8F8`、选中块 `#E3F2FD`、页头蓝紫渐变在深色下成片发白，各补一个覆盖块（**必须放文件末尾**：同优先级下后写的才盖得住前面的浅色声明）。另修首页四张快捷卡——浅色渐变原先写在 **JS 数据里当内联样式**，`@media` 根本覆盖不到，改为按 id 走 `.quick-icon--<id>` 类名，深色下换成同色相半透明。饱和主色（`#FF6B6B`/`#FF8E6B`/`#FDCB6E` 系按钮）深色下本身可读，刻意未改
+  - ⚠️ **深色模式视觉质量未经验证**：改动只经过选择器级 grep 核对（确认对应选择器确实在 dark 块内、顺序在浅色之后），**没有在模拟器里真看过一眼**。原因见"坑"里那条深色切换入口
+  - 首页云函数调用量已量（回答"要不要合并"）：冷启动 **4 次**（`login` 1 + `bookkeeping.stats` 1 + `habit.listHabits` 1 + `nearby` 天气 1），稳态每次回首页 **2 次**（天气 1h 缓存、`onShow` 5 秒节流）。**判断：不值得为此新建 `dashboard` 函数**——多一份部署面和一套鉴权，换 1 次调用和几十毫秒，个人版配额远没到瓶颈。真要省就用脏标记（记账/习惯写入成功后置 `app.globalData.statsDirty`，`onShow` 仅在 dirty 或超阈值时刷新），比放宽节流窗口安全（放宽窗口会让"刚记完账回首页看到旧数字"）
 - **系统性规范审查 + 全量修复 ✅ 已完成并部署上线（2026-10-07）**
   - 审查依据：CloudBase code-review 规则集（AUTH-WX/NOSQL-MP/STO 全过）+ 小程序规范清单；结论是**架构层干净**（前端零直连云数据库、4 个业务集合权限实测全 `PRIVATE`、云函数一律 `DYNAMIC_CURRENT_ENV` + `getWXContext` 鉴权、写操作全带所有权校验），缺陷集中在**数据口径**与**异常路径**
   - 云函数侧：`getStats`/`listHabits`/`calcStreak` 等聚合查询补 `.limit(1000)`（**云函数端 `get()` 不写 limit 时默认且最多 100 条，是本轮三条"静默少算"的同一根因**）；新增 `truncated`/`billCount` 让超限不再无声；`addBill` 日期兜底从 `toISOString()`(UTC) 改 UTC+8；`month`/`date`/`amount` 强校验；`listBills`/`export` 补 `_id` 次级排序键（同日多笔翻页原本会重/漏）；`checkIn` 服务端拒绝非法/未来/超一年日期；`setBudget` 改确定性 `_id`=md5(openid|month)，把并发双写收敛到主键唯一性（与 habit 同方案）
@@ -89,8 +100,17 @@
 - **微信开发者工具自动化通道的四条坑**（本机 IDE Stable 2.02.2608040 实测）：参数是 `--auto-port`，写成 `--auto 9421` 会打印 `✔ auto` 但**根本不监听**；`automator.launch({cliPath:'…/cli.bat'})` 在 Windows 必失败（spawn 不吃 .bat），改手动 `cli auto` + `automator.connect`；`checkVersion()` 会崩（本机 `Tool.getInfo` 不返回 `SDKVersion`），需 stub；**自动化窗口里 `wx.cloud.callFunction` 全部报 `appid missing`**（普通窗口正常）→ 这条通道只能验渲染，数据链路走 CloudBase MCP 直查
 - **部署云函数后要自检环境变量**：本轮用 CloudBase MCP `updateFunctionCode` + `updateFunctionConfig`（不传 `envVariables`）后，`invokeFunction nearby {action:'version'}` 返回 `keyConfigured:true`，AMAP_KEY 未丢 —— 但这是"事后验证到的"，不是"平台保证的"，传完必须查
 - **改运行时/配置类操作"返回成功"不等于生效**：`updateFunctionCode`、`createFunction(force:true)`、`tcb fn deploy --runtime` 三条通道都回 `success`/`✔ deployed successfully`，实际 Runtime 一个字没变。**唯一可信判据是 `queryFunctions listFunctions` 里每个函数的 `Runtime` 字段**（`tcb fn detail` 的表格也能读，但注意别被 ANSI 颜色码干扰取值——`\x1b[90m` 会让"90"混进结果里）。同理适用于 timeout：改完必须回读
+- **普通代码更新也有生效延迟，不只是配置类**：2026-10-07 用 `updateFunctionCode` 传 `habit`，返回成功后**立刻** `invokeFunction` 探针回的是旧代码的 `未知操作`；同一时刻 `tcb fn detail` 已能看到新代码里的 `unCheckIn`。隔一轮再探针才回 `缺少习惯ID`。**结论：探针不能只打一次，读到旧结果先重跑再判部署失败**，否则会误去做删除重建那种重操作
+- **自写的 CSS 深色覆盖审计脚本不可信，别拿它的输出当缺陷清单**：按行判断"是否在 dark 块内"会把多行选择器组（`.a,\n.b {`）和单行规则（`.x { ... }`）解析错，实测把**已覆盖**的 `.form-input`/`.preview-emoji` 报成未覆盖；`background: var(--x, #FFFFFF)` 的兜底值也不是缺陷（var 本身有深色覆盖）。**正解是直白 grep 复核**：`awk '/prefers-color-scheme: dark/,0' 文件 | grep -oE '\.(选择器)'`，一次核一个具体选择器，别信统计数字
+- **开发者工具的深色模式切换入口自动化拿不到（2026-10-07 三条路全试尽）**：① UIA 无障碍树对这个 Electron 窗口只返回 9 个空壳「窗格」节点、**零文字**，读不到任何按钮名；② IDE 原生菜单（工具/设置）是**独立弹层窗口**，`get_window_state` 按窗口截图抓不到，点完看不到菜单项；③ 手机画面下方那排模拟器工具栏图标盲点两轮（含 x=941/y=718）画面零变化。**别再继续盲点**——深色目检只能人工：官方文档《DarkMode 适配指南》明写"开发者工具 1.03.2004271 版本起，在模拟器顶部可切换深色/浅色模式"，本机 Stable 2.02.2608040 远新于此，入口一定在，只是自动化定位不到。同理 `project.private.config.json` 里没有主题键，改配置文件这条路也不通
+- **CloudBase 有三个互相独立的登录会话，别按"一个掉了"就判定全掉**：2026-10-07 实测 `mcp__cloudbase__*` 报 `AUTH_REQUIRED`，而 `mcp__plugin_cloudbase_cloudbase-mcp__*` 同一时刻正常列出 7 个云函数，`tcb` CLI 也活着。**看到 AUTH_REQUIRED 先换另一条 MCP 前缀试，不要直接去走 `auth start_auth` 或让用户重新认证**
 
 ### 下一步
+- [🔴 待人工·2 分钟] **深色模式目检**：本轮补的 5 处 dark 块（`habit/add`、`random/index`、`random/food`、`random/decision`、首页 `.quick-icon--*`）只做过选择器级 grep 核对，**没有在模拟器里真看过**。你在开发者工具模拟器顶部切一次深色，重点看这 5 处 + 习惯列表页新的「⬇ 导出」按钮和长按菜单里的「↩️ 撤销今日打卡」是否正常排版。自动化定位不到那个开关（三条路试尽，见"坑"）
+- [✅ 已完成] 习惯撤销打卡 + 打卡记录导出（2026-10-07，云函数已部署并探针验证，前端已改，测试 24→51 例）
+- [🟡 已裁决不做] **分类图标去 emoji 化——我上一条建议的严重度判断错了，撤回**。仓库里 `ICON-DESIGN.md`（2026-09-05）早有明确裁决：界面骨架图标（tabBar/首页卡/工具箱分类）走 `tools/icon-forge.js` 重绘的圆角蓝图 PNG，**已完成**（`images/icons/` 9 个 PNG 实测在位）；而记账分类这类**内容级 emoji 刻意保留**。我复核后认同：那 15 个字符全在 Unicode 基础集内、iOS/Android/微信都有覆盖，"变方框"是我高估的风险，换 PNG 要多养 15 个资产却只买到"基线更齐"。真正的问题不在 emoji，在**两处数据源**——已改（见"进行到"里那条诚实纠错）
+- [🟡 已搁置·用户裁决] 工具箱**二级列表**每个工具仍用 emoji（`pages/toolbox/list/index.js` 的 `icon` 字段），而父页 `toolbox/index.wxml` 用的是 PNG 分类图标——同一导航路径上两种视觉语言混着。用户说"工具箱两大类先不用改动"，故未动。**注意外链本身实测可达**：`https://tools.video/video-trim` 与 `https://pdf.imagestool.com/split-pdf` 当日都回 200（归属未确认，是用户自己的站还是第三方，没问过）
+- [判断已给·未做] 首页云函数调用合并成 `dashboard`：**不建议**。实测冷启动 4 次、稳态 2 次，个人版配额远未触顶。真要省就上脏标记（写入后置 `app.globalData.statsDirty`），别放宽 `onShow` 的 5 秒节流窗口
 - [✅ 已了结] ~~2026-10-01 环境到期~~ —— 2026-10-07 经 `envQuery` 实测：`ExpireTime 2027-03-30 23:59:59`、`IsAutoRenew=true`、`Status NORMAL`、个人版（`baas_personal`）。备份仍保留，真要迁移时按 `RESTORE.md` 九步走
 - [待办·迁移时必做] 换环境后要改的硬编码（漏一个就整片功能失效，详见 RESTORE.md 第 7 节）：本小程序 `project.config.json` + `miniprogram/app.js` 的 envId；食光 App `js/api.js` 17/20/26 行 + `ShiguangFlutter/lib/data/api_client.dart` 38/42/46 行，并且 **publishable key 是 JWT、`aud` 绑死旧 envId，必须换发新 key**，否则食光客户端全量 401
 - [✅ 已完成] 云函数运行时 `Nodejs16.13 → Nodejs18.15`（2026-10-07，5 个函数全部升完并回读确认）。**改法不是"改配置"而是"删除+同名重建"**，机制与四个坑（cloudbaserc 相对 `functionRoot`、`memorySize` 只能走 rc、`tcb fn delete` 无 `--force`、`nearby` 密钥搬运）记在"进行到"那条里
