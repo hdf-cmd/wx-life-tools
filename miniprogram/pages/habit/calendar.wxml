@@ -30,6 +30,9 @@
       class="cal-day {{item.isEmpty ? 'empty' : ''}} {{item.isChecked ? 'checked' : ''}} {{item.isToday ? 'today' : ''}}"
       wx:for="{{calendarDays}}"
       wx:key="uid"
+      bindtap="onDayTap"
+      data-date="{{item.date}}"
+      data-checked="{{item.isChecked ? 1 : 0}}"
     >
       <text class="day-text" wx:if="{{!item.isEmpty}}">{{item.day}}</text>
       <view class="check-dot" wx:if="{{item.isChecked}}">
@@ -47,6 +50,9 @@
   <view class="cal-loading" wx:else bindtap="loadLogs">
     <text class="month-text">⚠️ 打卡记录加载失败，点此重新加载</text>
   </view>
+
+  <!-- 撤销提示：放在 if/elif/else 链之后，插在中间会打断分支判定 -->
+  <view class="cal-hint" wx:if="{{!loading && !loadError}}">点击已打卡的日期可撤销该次打卡</view>
 
   <!-- 底部统计 -->
   <view class="stats-bar">

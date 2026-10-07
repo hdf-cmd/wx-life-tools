@@ -167,6 +167,14 @@
   font-size: 28rpx;
 }
 
+/* ===== 撤销提示 ===== */
+.cal-hint {
+  margin: 24rpx 32rpx 0;
+  text-align: center;
+  color: var(--color-text-placeholder);
+  font-size: 24rpx;
+}
+
 /* ===== 底部统计 ===== */
 .stats-bar {
   display: flex;

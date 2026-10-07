@@ -336,17 +336,26 @@
   font-weight: 600;
 }
 
-.toolbar-poster {
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+}
+
+.toolbar-btn {
   padding: 8rpx 20rpx;
   border-radius: var(--radius-round);
   background: rgba(62, 134, 224, 0.1);
+}
+
+.toolbar-btn + .toolbar-btn {
+  margin-left: 12rpx;
 }
 
 .toolbar-hover {
   opacity: 0.8;
 }
 
-.toolbar-poster-text {
+.toolbar-btn-text {
   font-size: var(--font-xs);
   color: var(--color-primary);
 }

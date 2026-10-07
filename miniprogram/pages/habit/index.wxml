@@ -13,11 +13,16 @@
     </view>
   </view>
 
-  <!-- 打卡工具条：最高连续 + 海报入口 -->
+  <!-- 打卡工具条：最高连续 + 海报/导出入口 -->
   <view class="habit-toolbar" wx:if="{{habitList.length > 0}}">
     <text class="toolbar-streak">🔥 最高连续 {{maxStreak}} 天</text>
-    <view class="toolbar-poster" bindtap="generatePoster" hover-class="toolbar-hover">
-      <text class="toolbar-poster-text">{{posting ? '生成中...' : '🖼 生成打卡海报'}}</text>
+    <view class="toolbar-actions">
+      <view class="toolbar-btn" bindtap="generatePoster" hover-class="toolbar-hover">
+        <text class="toolbar-btn-text">{{posting ? '生成中...' : '🖼 海报'}}</text>
+      </view>
+      <view class="toolbar-btn" bindtap="exportRecords" hover-class="toolbar-hover">
+        <text class="toolbar-btn-text">{{exporting ? '导出中...' : '⬇ 导出'}}</text>
+      </view>
     </view>
   </view>
 
@@ -100,6 +105,10 @@
   <view class="action-mask" wx:if="{{showActionSheet}}" bindtap="closeActionSheet">
     <view class="action-sheet" catchtap="noop">
       <view class="action-title">{{currentHabit.name}}</view>
+      <view class="action-item" wx:if="{{currentHabit.checkedIn}}" bindtap="onUndoCheckIn">
+        <text class="action-icon">↩️</text>
+        <text>撤销今日打卡</text>
+      </view>
       <view class="action-item" bindtap="onEditHabit">
         <text class="action-icon">✏️</text>
         <text>编辑</text>

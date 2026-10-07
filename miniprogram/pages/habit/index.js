@@ -3,6 +3,7 @@
 
 const app = getApp()
 const { todayStr } = require('../../utils/date.js')
+const { toCsv } = require('../../utils/csv.js')
 
 Page({
   data: {
@@ -23,6 +24,7 @@ Page({
     // 最高连续（全部习惯取最大）
     maxStreak: 0,
     posting: false,
+    exporting: false,
 
     // 长按操作菜单
     showActionSheet: false,
@@ -229,6 +231,100 @@ Page({
           })
         }
       }
+    })
+  },
+
+  /**
+   * 撤销今日打卡（长按卡片 → 操作菜单）
+   * 打错卡此前没有任何出口：记录会永久留着，连续天数随之虚高
+   */
+  onUndoCheckIn: function () {
+    const habit = this.data.currentHabit
+    this.setData({ showActionSheet: false })
+    if (!habit || !habit.checkedIn) return
+
+    const that = this
+    wx.showModal({
+      title: '撤销今日打卡',
+      content: `确定撤销「${habit.name}」今天的打卡吗？连续天数会相应回退。`,
+      confirmText: '撤销',
+      confirmColor: '#FF5252',
+      success: function (m) {
+        if (!m.confirm || that._destroyed) return
+        wx.cloud.callFunction({
+          name: 'habit',
+          data: { action: 'unCheckIn', habitId: habit._id, date: that.data.todayDate }
+        }).then(res => {
+          const r = (res && res.result) || {}
+          if (r.code === 0) {
+            wx.showToast({ title: '已撤销', icon: 'none' })
+            that.loadHabits()
+          } else if (r.code === -2) {
+            // 记录已不在（多端同时操作或已在日历页撤销）：状态本就等价于已撤销，刷新即可，不算失败
+            wx.showToast({ title: r.msg || '该日期没有打卡记录', icon: 'none' })
+            that.loadHabits()
+          } else {
+            wx.showToast({ title: r.msg || '撤销失败', icon: 'none' })
+          }
+        }).catch(err => {
+          console.error('[habit] 撤销打卡失败', err)
+          wx.showToast({ title: '撤销失败，请重试', icon: 'none' })
+        })
+      }
+    })
+  },
+
+  /**
+   * 导出全部打卡记录为 CSV（复制到剪贴板，与记账导出同一口径）
+   */
+  exportRecords: function () {
+    if (this.data.exporting) return
+    const that = this
+    this.setData({ exporting: true })
+
+    wx.cloud.callFunction({
+      name: 'habit',
+      data: { action: 'exportLogs' }
+    }).then(res => {
+      if (that._destroyed) return
+      that.setData({ exporting: false })
+      const r = (res && res.result) || {}
+      if (r.code !== 0) {
+        wx.showToast({ title: r.msg || '导出失败', icon: 'none' })
+        return
+      }
+      const logs = r.data || []
+      if (logs.length === 0) {
+        wx.showToast({ title: '还没有打卡记录可导出', icon: 'none' })
+        return
+      }
+      const truncated = !!r.truncated
+      if (truncated) wx.showToast({ title: '仅导出前 5000 条', icon: 'none' })
+
+      wx.setClipboardData({
+        data: toCsv(['日期', '习惯', '备注'], logs.map(l => [l.date, l.habitName, l.note])),
+        success: function () {
+          if (that._destroyed) return
+          wx.showModal({
+            title: '导出成功',
+            content: `共 ${logs.length} 条打卡记录已复制为 CSV`
+              + (truncated ? '（记录超过 5000 条，仅导出前 5000 条）' : '')
+              + '，去电脑上粘贴到表格文件即可保存',
+            showCancel: false,
+            confirmText: '知道了'
+          })
+        },
+        fail: function (err) {
+          if (that._destroyed) return
+          console.error('[habit] 复制剪贴板失败:', err)
+          wx.showToast({ title: '复制失败，请重试', icon: 'none' })
+        }
+      })
+    }).catch(err => {
+      if (that._destroyed) return
+      that.setData({ exporting: false })
+      console.error('[habit] 导出失败', err)
+      wx.showToast({ title: '网络错误，请重试', icon: 'none' })
     })
   },
 

@@ -54,7 +54,8 @@ Page({
     bestStreak: 0,       // 本月内最长连续打卡天数
 
     loading: true,
-    loadError: false
+    loadError: false,
+    undoing: false
   },
 
   onLoad: function (options) {
@@ -245,6 +246,46 @@ Page({
   onNextMonth: function () {
     const parts = shiftMonth(monthKey(this.data.year, this.data.month), 1).split('-')
     this.applyMonth(parseInt(parts[0], 10), parseInt(parts[1], 10))
+  },
+
+  /**
+   * 点击日期格：只处理「撤销已打卡的日期」
+   * 补打走列表页，这里不做出卡口——避免同一页两种相反写操作误触
+   */
+  onDayTap: function (e) {
+    const ds = e.currentTarget.dataset || {}
+    if (!ds.date || !ds.checked || this.data.undoing) return
+
+    const that = this
+    wx.showModal({
+      title: '撤销打卡',
+      content: `确定撤销 ${ds.date} 的打卡吗？连续天数会相应回退。`,
+      confirmText: '撤销',
+      confirmColor: '#FF5252',
+      success: function (m) {
+        if (!m.confirm || that._destroyed) return
+        that.setData({ undoing: true })
+        wx.cloud.callFunction({
+          name: 'habit',
+          data: { action: 'unCheckIn', habitId: that.data.habitId, date: ds.date }
+        }).then(res => {
+          const r = (res && res.result) || {}
+          if (r.code === 0) {
+            wx.showToast({ title: '已撤销', icon: 'none' })
+          } else if (r.code !== -2) {
+            // -2 = 记录已不在，等价于撤销完成，同样刷新即可
+            wx.showToast({ title: r.msg || '撤销失败', icon: 'none' })
+            return
+          }
+          that.loadLogs()
+        }).catch(err => {
+          console.error('[calendar] 撤销打卡失败', err)
+          wx.showToast({ title: '撤销失败，请重试', icon: 'none' })
+        }).finally(function () {
+          if (!that._destroyed) that.setData({ undoing: false })
+        })
+      }
+    })
   },
 
   /**

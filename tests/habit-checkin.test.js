@@ -1,5 +1,5 @@
 // tests/habit-checkin.test.js
-// habit 云函数 checkIn 接口级沙箱测试。
+// habit 云函数打卡链路的接口级沙箱测试：checkIn / unCheckIn / exportLogs。
 // 加载真实云函数源码（cloudfunctions/habit/index.js），仅将 wx-server-sdk 替换为内存桩件。
 // 运行方式：node tests/habit-checkin.test.js
 //
@@ -176,6 +176,135 @@ async function main() {
     const r = await habitFn.main({ action: 'listHabits' }, {})
     eq(r.code, 0)
     eq(r.data[0].streak, 150, 'streak')
+  })
+
+  // ===== 本轮新增：撤销打卡 =====
+  function unCheckIn(habitId, date) {
+    return habitFn.main({ action: 'unCheckIn', habitId: habitId, date: date || TODAY }, {})
+  }
+
+  await test('撤销打卡：记录删除、连续天数归零', async () => {
+    stub.reset({ openid: 'userA' })
+    seedHabit('userA', 'h1')
+    const in1 = await checkIn('h1')
+    eq(in1.code, 0, '先打卡成功')
+    eq(in1.streak, 1, '打卡后 streak')
+    const out = await unCheckIn('h1')
+    eq(out.code, 0, '撤销应成功')
+    eq(out.data.removed, 1, 'removed')
+    eq(out.streak, 0, '撤销后 streak 归零')
+    eq(stub.dump('habit_logs').length, 0, '库中不应再有记录')
+    const list = await habitFn.main({ action: 'listHabits' }, {})
+    eq(list.data[0].checkedIn, false, '列表应回到未打卡')
+  })
+
+  await test('撤销无记录日期：返回 -2 且不产生任何写入', async () => {
+    stub.reset({ openid: 'userA' })
+    seedHabit('userA', 'h1')
+    stub.ensureCollection('habit_logs')
+    const r = await unCheckIn('h1', '2026-01-01')
+    eq(r.code, -2, '无记录应返回 -2')
+    eq(stub.dump('habit_logs').length, 0, '不应有写入')
+  })
+
+  await test('撤销越权：习惯属于他人时拒绝，他人记录不受影响', async () => {
+    stub.reset({ openid: 'userA' })
+    seedHabit('userB', 'h1')
+    stub.seedDoc('habit_logs', { _id: expectedId('userB', 'h1', TODAY), _openid: 'userB', habitId: 'h1', date: TODAY })
+    const r = await unCheckIn('h1')
+    eq(r.code, -1, '应拒绝撤销他人习惯')
+    eq(stub.dump('habit_logs').length, 1, 'userB 的记录必须还在')
+  })
+
+  await test('撤销 fail-closed：查重查询超时时不谎报成功', async () => {
+    stub.reset({ openid: 'userA' })
+    seedHabit('userA', 'h1')
+    await checkIn('h1')
+    const timeoutErr = new Error('database query timeout')
+    timeoutErr.errCode = -504003
+    timeoutErr.errMsg = timeoutErr.message
+    stub.failNextQuery(timeoutErr)
+    const r = await unCheckIn('h1')
+    eq(r.code, -1, '结果不明应返回失败')
+    eq(stub.dump('habit_logs').length, 1, '记录不应被删')
+  })
+
+  await test('撤销兼容旧数据：修复前写入的随机 _id 记录同样能撤掉', async () => {
+    stub.reset({ openid: 'userA' })
+    seedHabit('userA', 'h1')
+    stub.seedDoc('habit_logs', { _id: 'legacy_random_id', _openid: 'userA', habitId: 'h1', date: TODAY, note: '' })
+    const r = await unCheckIn('h1')
+    eq(r.code, 0, '旧记录应可撤销')
+    eq(r.data.removed, 1, 'removed')
+    eq(stub.dump('habit_logs').length, 0, '应已删除')
+  })
+
+  await test('并发双撤销：两个请求都不报错，最终只剩零条', async () => {
+    stub.reset({ openid: 'userA' })
+    seedHabit('userA', 'h1')
+    await checkIn('h1')
+    const results = await Promise.all([unCheckIn('h1'), unCheckIn('h1')])
+    results.forEach((x, i) => eq(x.code, 0, '第 ' + (i + 1) + ' 个撤销'))
+    eq(stub.dump('habit_logs').length, 0, '最终应零条')
+  })
+
+  await test('撤销日期把关：格式错误拒绝', async () => {
+    stub.reset({ openid: 'userA' })
+    seedHabit('userA', 'h1')
+    eq((await unCheckIn('h1', '2026-9-5')).code, -1, '格式错误应拒绝')
+  })
+
+  // ===== 本轮新增：导出打卡记录 =====
+  function exportLogs(month) {
+    return habitFn.main(month ? { action: 'exportLogs', month: month } : { action: 'exportLogs' }, {})
+  }
+
+  await test('导出：习惯名映射正确且按 month 过滤', async () => {
+    stub.reset({ openid: 'userA' })
+    stub.seedDoc('habits', { _id: 'h1', _openid: 'userA', name: '早起', frequency: 'daily', weekDays: [] })
+    stub.ensureCollection('habit_logs')
+    stub.seedDoc('habit_logs', { _id: 'l1', _openid: 'userA', habitId: 'h1', date: '2026-09-01', note: 'ok' })
+    stub.seedDoc('habit_logs', { _id: 'l2', _openid: 'userA', habitId: 'h1', date: '2026-10-02', note: '' })
+    stub.seedDoc('habit_logs', { _id: 'l3', _openid: 'userA', habitId: 'gone', date: '2026-10-03', note: '' })
+    const all = await exportLogs()
+    eq(all.code, 0)
+    eq(all.data.length, 3, '不带 month 应导出全部')
+    eq(all.truncated, false, 'truncated')
+    eq(all.data.find(r => r.habitId === 'h1').habitName, '早起', '习惯名应解析出来')
+    eq(all.data.find(r => r.habitId === 'gone').habitName, '（已删除的习惯）', '已删习惯应有占位名')
+    const oct = await exportLogs('2026-10')
+    eq(oct.data.length, 2, '10 月应只出 2 条')
+    oct.data.forEach(r => assert(r.date.indexOf('2026-10') === 0, '月份过滤失效：' + r.date))
+  })
+
+  await test('导出：1200 条翻页取全，不被单次 1000 条上限截断', async () => {
+    stub.reset({ openid: 'userA' })
+    seedHabit('userA', 'h1')
+    stub.ensureCollection('habit_logs')
+    // 每条写唯一 note：翻页若重复或漏取，去重后的 note 数就会不等于 1200
+    for (let i = 0; i < 1200; i++) {
+      stub.seedDoc('habit_logs', {
+        _id: 'pad' + String(i).padStart(5, '0'),
+        _openid: 'userA', habitId: 'h1', date: '2026-09-01', note: 'n' + i
+      })
+    }
+    const r = await exportLogs('2026-09')
+    eq(r.code, 0)
+    eq(r.data.length, 1200, '应翻页取满 1200 条')
+    eq(r.truncated, false, '未达导出上限时 truncated 必须为 false')
+    const notes = {}
+    r.data.forEach(row => { notes[row.note] = (notes[row.note] || 0) + 1 })
+    eq(Object.keys(notes).length, 1200, 'note 去重后应仍是 1200（不重不漏）')
+    Object.keys(notes).forEach(n => eq(notes[n], 1, n + ' 出现了多次，翻页有重复'))
+  })
+
+  await test('导出：集合不存在视为空结果，month 格式错拒绝', async () => {
+    stub.reset({ openid: 'userA' })
+    seedHabit('userA', 'h1')
+    const empty = await exportLogs()
+    eq(empty.code, 0, '从未打过卡应返回空而非报错')
+    eq(empty.data.length, 0)
+    eq((await exportLogs('2026-9')).code, -1, '月份格式错误应拒绝')
   })
 
   console.log('\n结果：' + passed + ' 通过 / ' + failed + ' 失败')

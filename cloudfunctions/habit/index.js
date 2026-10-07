@@ -28,8 +28,12 @@ exports.main = async (event, context) => {
       return await listHabits(openid)
     case 'checkIn':
       return await checkIn(openid, event)
+    case 'unCheckIn':
+      return await unCheckIn(openid, event)
     case 'getLogs':
       return await getLogs(openid, event)
+    case 'exportLogs':
+      return await exportLogs(openid, event)
     case 'getStreak':
       return await getStreak(openid, event)
     case 'deleteHabit':
@@ -262,6 +266,75 @@ async function checkIn(openid, params) {
 }
 
 /**
+ * 撤销打卡（checkIn 的逆操作）
+ * 打错卡原先无任何出口：记录会永久存在，连续天数随之虚高。
+ * 定位方式与 checkIn 对称——同一幂等键，故也兼容修复前写入的随机 _id 历史数据。
+ * @param {string} openid
+ * @param {Object} params - { habitId, date } date 缺省为今天
+ */
+async function unCheckIn(openid, params) {
+  const { habitId, date } = params
+  if (!habitId) return { code: -1, msg: '缺少习惯ID' }
+  const targetDate = date || getTodayStr()
+  if (!isValidDateStr(targetDate)) {
+    return { code: -1, msg: '日期格式错误（应为 YYYY-MM-DD）' }
+  }
+
+  let habit
+  try {
+    habit = await db.collection('habits').doc(habitId).get()
+  } catch (e) {
+    return { code: -1, msg: '习惯不存在', error: e.message }
+  }
+  if (!habit.data || habit.data._openid !== openid) {
+    return { code: -1, msg: '无权撤销该习惯的打卡' }
+  }
+
+  // 查询结果不明时 fail-closed：不能把"没查到"当成"没有记录"
+  let logs
+  try {
+    logs = await findExistingLog(openid, habitId, targetDate)
+  } catch (e) {
+    if (isCollectionNotExist(e)) return { code: -2, msg: '该日期没有打卡记录' }
+    return { code: -1, msg: '撤销失败，请重试', error: e.message }
+  }
+  if (logs.length === 0) return { code: -2, msg: '该日期没有打卡记录' }
+
+  let removeErr = null
+  try {
+    for (let i = 0; i < logs.length; i++) {
+      await db.collection('habit_logs').doc(logs[i]._id).remove()
+    }
+  } catch (e) {
+    removeErr = e
+  }
+
+  // 以"重查后还剩几条"为唯一判据：remove 抛错但记录确已消失（并发撤销）也算成功
+  let remaining = 0
+  try {
+    remaining = (await findExistingLog(openid, habitId, targetDate)).length
+  } catch (e) {
+    remaining = removeErr ? logs.length : 0
+  }
+  if (remaining > 0) {
+    return {
+      code: -1,
+      msg: '撤销未完成，请重试',
+      error: removeErr ? removeErr.message : '',
+      data: { remaining }
+    }
+  }
+
+  let streak = 0
+  try {
+    streak = await calcStreak(openid, habitId, habit.data.frequency, habit.data.weekDays)
+  } catch (e) {
+    streak = 0
+  }
+  return { code: 0, msg: '已撤销', data: { removed: logs.length, remaining }, streak }
+}
+
+/**
  * 获取指定习惯的打卡记录
  * @param {string} openid
  * @param {Object} params - { habitId, month } month格式: YYYY-MM
@@ -296,6 +369,73 @@ async function getLogs(openid, params) {
     return { code: 0, data: logs }
   } catch (e) {
     return { code: -1, msg: '获取记录失败', error: e.message }
+  }
+}
+
+/**
+ * 导出打卡记录（口径与 bookkeeping 的 export 对齐：返回原始行 + truncated 标记，
+ * CSV 拼装放前端，与记账那边一致）
+ * @param {string} openid
+ * @param {Object} params - { month } month 缺省为导出全部
+ */
+async function exportLogs(openid, params) {
+  const { month } = params || {}
+  if (month && !/^\d{4}-\d{2}$/.test(month)) {
+    return { code: -1, msg: '月份格式错误（应为 YYYY-MM）' }
+  }
+
+  // 单次 get() 上限 1000 条，9 个习惯跑一年就有 3000+ 条，必须翻页而不是只取第一页
+  const MAX_EXPORT = 5000
+
+  try {
+    let nameMap = {}
+    try {
+      const { data: habits } = await db.collection('habits')
+        .where({ _openid: openid })
+        .limit(MAX_ROWS)
+        .get()
+      ;(habits || []).forEach(h => { nameMap[h._id] = h.name })
+    } catch (e) {
+      // 无习惯或集合不存在：导出的行里习惯名回落为占位文案
+    }
+
+    const cond = { _openid: openid }
+    if (month) cond.date = _.gte(month + '-01').and(_.lt(month + '-32'))
+
+    const rows = []
+    let truncated = false
+    while (true) {
+      const { data: page } = await db.collection('habit_logs')
+        .where(cond)
+        .orderBy('_id', 'asc')
+        .skip(rows.length)
+        .limit(MAX_ROWS)
+        .get()
+      const batch = page || []
+      for (let i = 0; i < batch.length; i++) rows.push(batch[i])
+      if (batch.length < MAX_ROWS) break
+      if (rows.length >= MAX_EXPORT) {
+        truncated = true
+        break
+      }
+    }
+
+    return {
+      code: 0,
+      truncated: truncated,
+      data: rows
+        // 翻页按 _id 排序（skip 必须配稳定序），但导出给用户的 CSV 要按日期读
+        .sort((a, b) => (a.date === b.date ? 0 : (a.date < b.date ? -1 : 1)))
+        .map(l => ({
+          habitName: nameMap[l.habitId] || '（已删除的习惯）',
+          habitId: l.habitId,
+          date: l.date,
+          note: l.note || ''
+        }))
+    }
+  } catch (e) {
+    if (isCollectionNotExist(e)) return { code: 0, data: [], truncated: false }
+    return { code: -1, msg: '导出失败', error: e.message }
   }
 }
 
