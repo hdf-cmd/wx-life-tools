@@ -22,7 +22,17 @@ const crypto = require('crypto')
 const stub = require('./stubs/wx-server-sdk')
 const habitFn = require('../cloudfunctions/habit/index.js')
 
-const TODAY = '2026-09-11'
+// 与云函数 getTodayStr() 同口径（UTC+8）动态取今日。
+// 原先硬编码 '2026-09-11' 并断言 streak=1：真实日期一旦越过该日，连续天数就归 0，测试必挂。
+function utc8Today(offsetDays) {
+  const t = new Date(Date.now() + 8 * 60 * 60 * 1000 - (offsetDays || 0) * 24 * 60 * 60 * 1000)
+  const y = t.getUTCFullYear()
+  const m = String(t.getUTCMonth() + 1).padStart(2, '0')
+  const d = String(t.getUTCDate()).padStart(2, '0')
+  return y + '-' + m + '-' + d
+}
+
+const TODAY = utc8Today()
 
 function expectedId(openid, habitId, date) {
   return crypto.createHash('md5').update(openid + '|' + habitId + '|' + date).digest('hex')
@@ -59,6 +69,12 @@ async function test(name, fn) {
 
 function assert(cond, msg) {
   if (!cond) throw new Error(msg || '断言失败')
+}
+
+function eq(actual, expected, label) {
+  if (actual !== expected) {
+    throw new Error((label || '值') + '应为 ' + JSON.stringify(expected) + '，实际 ' + JSON.stringify(actual))
+  }
 }
 
 async function main() {
@@ -129,6 +145,37 @@ async function main() {
     stub.seedDoc('habits', { _id: 'h1', _openid: 'userB', name: 'x', frequency: 'daily', weekDays: [] })
     stub.seedDoc('habit_logs', { _id: expectedId('userB', 'h1', '2026-09-12'), _openid: 'userB', habitId: 'h1', date: '2026-09-12' })
     assert((await checkIn('h1', '2026-09-12')).code === -2, 'userB 同日重复打卡应被拦')
+  })
+
+  // ===== 本轮新增：服务端日期把关 + 条数上限回归 =====
+  function utc8Date(offsetDays) {
+    const t = new Date(Date.now() + 8 * 3600000 - offsetDays * 86400000)
+    return t.getUTCFullYear() + '-' + String(t.getUTCMonth() + 1).padStart(2, '0') + '-' + String(t.getUTCDate()).padStart(2, '0')
+  }
+
+  await test('服务端拒绝非法/越界日期：格式错、未来、超一年', async () => {
+    stub.reset({ openid: 'userA' })
+    seedHabit('userA', 'h1')
+    const badFormat = await checkIn('h1', '2026-9-5')
+    eq(badFormat.code, -1, '格式错误应拒绝')
+    const future = await checkIn('h1', utc8Date(-5))
+    eq(future.code, -1, '未来日期应拒绝')
+    const ancient = await checkIn('h1', utc8Date(400))
+    eq(ancient.code, -1, '超 365 天应拒绝')
+    eq(stub.dump('habit_logs').length, 0, '三种非法请求都不应落库')
+  })
+
+  await test('连续天数不被 100 条默认上限截断：150 天连卡应算出 150', async () => {
+    stub.reset({ openid: 'userA' })
+    seedHabit('userA', 'h1')
+    stub.ensureCollection('habit_logs')
+    for (let i = 0; i < 150; i++) {
+      const d = utc8Date(i)
+      stub.seedDoc('habit_logs', { _id: expectedId('userA', 'h1', d), _openid: 'userA', habitId: 'h1', date: d })
+    }
+    const r = await habitFn.main({ action: 'listHabits' }, {})
+    eq(r.code, 0)
+    eq(r.data[0].streak, 150, 'streak')
   })
 
   console.log('\n结果：' + passed + ' 通过 / ' + failed + ' 失败')

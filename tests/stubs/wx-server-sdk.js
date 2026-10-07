@@ -30,10 +30,22 @@ function matchCond(doc, cond) {
     const k = keys[i]
     const expect = cond[k]
     const actual = doc[k]
-    if (expect && typeof expect === 'object' && expect.__op === 'gte') {
+    if (expect && Array.isArray(expect.__and)) {
+      // _.gte(a).and(_.lt(b)) 复合条件：同一字段的区间
+      for (const one of expect.__and) {
+        if (one.__op === 'gte' && !(typeof actual === 'string' && actual >= one.val)) return false
+        if (one.__op === 'lte' && !(typeof actual === 'string' && actual <= one.val)) return false
+        if (one.__op === 'lt' && !(typeof actual === 'string' && actual < one.val)) return false
+        if (one.__op === 'gt' && !(typeof actual === 'string' && actual > one.val)) return false
+      }
+    } else if (expect && typeof expect === 'object' && expect.__op === 'gte') {
       if (!(typeof actual === 'string' && actual >= expect.val)) return false
     } else if (expect && typeof expect === 'object' && expect.__op === 'lte') {
       if (!(typeof actual === 'string' && actual <= expect.val)) return false
+    } else if (expect && typeof expect === 'object' && expect.__op === 'lt') {
+      if (!(typeof actual === 'string' && actual < expect.val)) return false
+    } else if (expect && typeof expect === 'object' && expect.__op === 'gt') {
+      if (!(typeof actual === 'string' && actual > expect.val)) return false
     } else if (actual !== expect) {
       return false
     }
@@ -41,16 +53,27 @@ function matchCond(doc, cond) {
   return true
 }
 
+function project(doc, fields) {
+  if (!fields) return Object.assign({}, doc)
+  const out = { _id: doc._id }
+  Object.keys(fields).forEach(k => { if (fields[k]) out[k] = doc[k] })
+  return out
+}
+
 class Query {
   constructor(name) {
     this.name = name
     this._cond = null
-    this._orderBy = null
-    this._limit = 100
+    this._orderBy = []
+    this._limit = 100     // 与云函数端一致：不写 limit 时默认且最多 100 条
+    this._skip = 0
+    this._fields = null
   }
   where(cond) { this._cond = cond; return this }
-  orderBy(field, order) { this._orderBy = [field, order]; return this }
+  orderBy(field, order) { this._orderBy.push([field, order]); return this }
   limit(n) { this._limit = n; return this }
+  skip(n) { this._skip = n; return this }
+  field(fields) { this._fields = fields; return this }
   async get() {
     await Promise.resolve()
     if (state.failNextQuery) {
@@ -61,13 +84,29 @@ class Query {
     if (!state.collections[this.name]) throw notExistError(this.name)
     let docs = Array.from(state.collections[this.name].values())
     if (this._cond) docs = docs.filter(d => matchCond(d, this._cond))
-    if (this._orderBy) {
-      const f = this._orderBy[0]
-      const o = this._orderBy[1]
-      docs.sort((a, b) => (a[f] > b[f] ? 1 : a[f] < b[f] ? -1 : 0))
-      if (o === 'desc') docs.reverse()
+    // 多字段排序：前面的键优先，date 这类天粒度字段必须能再按 _id 兜底
+    if (this._orderBy.length) {
+      docs.sort((a, b) => {
+        for (const [f, o] of this._orderBy) {
+          if (a[f] === b[f]) continue
+          const cmp = a[f] > b[f] ? 1 : -1
+          return (o === 'desc' ? -cmp : cmp)
+        }
+        return 0
+      })
     }
-    return { data: docs.slice(0, this._limit).map(d => Object.assign({}, d)) }
+    docs = docs.slice(this._skip, this._skip + this._limit)
+    return { data: docs.map(d => project(d, this._fields)) }
+  }
+  async update({ data }) {
+    await Promise.resolve()
+    const c = state.collections[this.name]
+    if (!c) throw notExistError(this.name)
+    const matched = Array.from(c.values()).filter(d => this._cond ? matchCond(d, this._cond) : true)
+    matched.forEach(doc => {
+      c.set(doc._id, Object.assign({}, doc, data))
+    })
+    return { stats: { updated: matched.length } }
   }
 }
 
@@ -91,6 +130,18 @@ class DocRef {
       throw e
     }
     return { data: Object.assign({}, c.get(this.id)) }
+  }
+  async update({ data }) {
+    await Promise.resolve()
+    const c = state.collections[this.name]
+    if (!c || !c.has(this.id)) {
+      const e = new Error('document not exists: ' + this.id)
+      e.errCode = -502004
+      e.errMsg = e.message
+      throw e
+    }
+    c.set(this.id, Object.assign({}, c.get(this.id), data))
+    return { stats: { updated: 1 } }
   }
   async remove() {
     await Promise.resolve()
@@ -134,10 +185,21 @@ const dbApi = {
     return {}
   },
   serverDate() { return { __serverDate: true } },
-  command: {
-    gte(v) { return { __op: 'gte', val: v } },
-    lte(v) { return { __op: 'lte', val: v } }
-  }
+  command: (function () {
+    function cmd(op, val) {
+      return {
+        __op: op,
+        val: val,
+        and: function (other) { return { __and: [this, other] } }
+      }
+    }
+    return {
+      gte: v => cmd('gte', v),
+      lte: v => cmd('lte', v),
+      gt: v => cmd('gt', v),
+      lt: v => cmd('lt', v)
+    }
+  })()
 }
 
 module.exports = {
@@ -156,6 +218,10 @@ module.exports = {
   // 预置文档（绕过 add，用于构造历史数据/习惯定义）
   seedDoc(name, doc) {
     coll(name).set(String(doc._id), Object.assign({}, doc))
+  },
+  // 建空集合（真实环境里 accounts/budgets 已存在，桩件需要显式建）
+  ensureCollection(name) {
+    coll(name)
   },
   dump(name) {
     return Array.from(coll(name).values()).map(d => Object.assign({}, d))
