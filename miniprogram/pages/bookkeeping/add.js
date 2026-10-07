@@ -3,35 +3,16 @@
 
 const util = require('../../utils/util.js')
 const date = require('../../utils/date.js')
+const category = require('../../utils/category.js')
 
 // 表单上限：与云函数 bookkeeping 的校验口径对齐，前端先拦一道，不靠服务端拒绝
 const MAX_AMOUNT = 10000000
 const MAX_NOTE_LEN = 200
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
-// 支出分类
-const EXPENSE_CATEGORIES = [
-  { name: '餐饮', icon: '🍜' },
-  { name: '交通', icon: '🚌' },
-  { name: '购物', icon: '🛒' },
-  { name: '娱乐', icon: '🎮' },
-  { name: '住房', icon: '🏠' },
-  { name: '医疗', icon: '💊' },
-  { name: '教育', icon: '📚' },
-  { name: '服饰', icon: '👔' },
-  { name: '通讯', icon: '📱' },
-  { name: '其他', icon: '📦' }
-]
-
-// 收入分类
-const INCOME_CATEGORIES = [
-  { name: '工资', icon: '💰' },
-  { name: '奖金', icon: '🎁' },
-  { name: '投资', icon: '📈' },
-  { name: '红包', icon: '🎊' },
-  { name: '兼职', icon: '💵' },
-  { name: '其他', icon: '📦' }
-]
+// 分类表与图标统一取自 utils/category.js（本文件曾自持一份 16 行副本，改一处就会与列表页/统计页错位）
+const EXPENSE_CATEGORIES = category.EXPENSE_CATEGORIES
+const INCOME_CATEGORIES = category.INCOME_CATEGORIES
 
 Page({
   data: {

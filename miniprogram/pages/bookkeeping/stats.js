@@ -4,6 +4,7 @@
 const util = require('../../utils/util.js')
 const date = require('../../utils/date.js')
 const category = require('../../utils/category.js')
+const { toCsv } = require('../../utils/csv.js')
 
 // 趋势窗口：云函数 trend 的月份窗口锚定「今天所在的近 N 个月」，不接受所选月参数，
 // 所以本图固定显示近 6 个月，切月不重取（重取也是同一份数据），文案上写清楚
@@ -211,21 +212,17 @@ Page({
         // 截断必须明示：toast 会被紧随其后的 modal 盖掉，所以同一句话也写进弹窗正文
         if (truncated) util.showToast('仅导出前 1000 条')
 
-        // 拼 CSV（字段含逗号/引号/换行时加引号转义，内部引号翻倍；BOM 头保证 Excel 中文不乱码）
-        const escape = function (v) {
-          const s = String(v === undefined || v === null ? '' : v)
-          return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s
-        }
-        let csv = '\ufeff日期,类型,分类,金额,备注\n'
-        bills.forEach(b => {
-          csv += [
-            escape(b.date),
+        // 拼 CSV 走 utils/csv.js（与习惯导出共用，避免两处转义口径漂移）
+        const csv = toCsv(
+          ['日期', '类型', '分类', '金额', '备注'],
+          bills.map(b => [
+            b.date,
             b.type === 'income' ? '收入' : '支出',
-            escape(b.category),
+            b.category,
             (Number(b.amount) || 0).toFixed(2),
-            escape(b.note || '')
-          ].join(',') + '\n'
-        })
+            b.note || ''
+          ])
+        )
 
         wx.setClipboardData({
           data: csv,
