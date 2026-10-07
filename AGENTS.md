@@ -109,7 +109,10 @@
 - [🔴 待人工·2 分钟] **深色模式目检**：本轮补的 5 处 dark 块（`habit/add`、`random/index`、`random/food`、`random/decision`、首页 `.quick-icon--*`）只做过选择器级 grep 核对，**没有在模拟器里真看过**。你在开发者工具模拟器顶部切一次深色，重点看这 5 处 + 习惯列表页新的「⬇ 导出」按钮和长按菜单里的「↩️ 撤销今日打卡」是否正常排版。自动化定位不到那个开关（三条路试尽，见"坑"）
 - [✅ 已完成] 习惯撤销打卡 + 打卡记录导出（2026-10-07，云函数已部署并探针验证，前端已改，测试 24→51 例）
 - [🟡 已裁决不做] **分类图标去 emoji 化——我上一条建议的严重度判断错了，撤回**。仓库里 `ICON-DESIGN.md`（2026-09-05）早有明确裁决：界面骨架图标（tabBar/首页卡/工具箱分类）走 `tools/icon-forge.js` 重绘的圆角蓝图 PNG，**已完成**（`images/icons/` 9 个 PNG 实测在位）；而记账分类这类**内容级 emoji 刻意保留**。我复核后认同：那 15 个字符全在 Unicode 基础集内、iOS/Android/微信都有覆盖，"变方框"是我高估的风险，换 PNG 要多养 15 个资产却只买到"基线更齐"。真正的问题不在 emoji，在**两处数据源**——已改（见"进行到"里那条诚实纠错）
-- [🟡 已搁置·用户裁决] 工具箱**二级列表**每个工具仍用 emoji（`pages/toolbox/list/index.js` 的 `icon` 字段），而父页 `toolbox/index.wxml` 用的是 PNG 分类图标——同一导航路径上两种视觉语言混着。用户说"工具箱两大类先不用改动"，故未动。**注意外链本身实测可达**：`https://tools.video/video-trim` 与 `https://pdf.imagestool.com/split-pdf` 当日都回 200（归属未确认，是用户自己的站还是第三方，没问过）
+- [🟡 已搁置·用户裁决，但发布前必须重决] 工具箱**二级列表**每个工具仍用 emoji（`pages/toolbox/list/index.js` 的 `icon` 字段），而父页 `toolbox/index.wxml` 用的是 PNG 分类图标——同一导航路径上两种视觉语言混着。用户说"工具箱两大类先不用改动"，故未动。
+  - **2026-10-07 已确认：`https://tools.video`（视频编辑 8 项）与 `https://pdf.imagestool.com`（PDF 13 项）都不是用户的站，是第三方。** 当日实测两条链接都回 200，但可用性、改版、内容、域名归属全部不可控——工具箱 24 个入口里 **16 个（67%）建在别人的站上**，站主关站或换内容时这半页工具会静默失效或变成我们不认识的页面。
+  - **[判断，非条款结论]** 交互形态是"复制链接 → 提示去手机浏览器粘贴"，属于把用户往小程序外部导流。我检索了两轮**没有拿到《微信小程序运营规范》里对应的条款原文**，所以不能断言它一定被拒；但这类规避跳转的做法是审核敏感区，**提审前建议要么摘掉这两大类、要么明确标注"由第三方提供，非本项目运营"**，二选一，别原样提审。
+  - 摘掉的代价很小（键名已核对）：删 `pages/toolbox/list/index.js` 里的 `CATEGORIES.videoEdit`（16 行起）与 `CATEGORIES.pdf`（31 行起）两个对象，并同步删掉 `pages/toolbox/index.js` 第 6 行 `categories` 数组里对应的两个入口，不影响任何本地功能（`video`/`image`/`random` 三类全是本地实现）。
 - [判断已给·未做] 首页云函数调用合并成 `dashboard`：**不建议**。实测冷启动 4 次、稳态 2 次，个人版配额远未触顶。真要省就上脏标记（写入后置 `app.globalData.statsDirty`），别放宽 `onShow` 的 5 秒节流窗口
 - [✅ 已了结] ~~2026-10-01 环境到期~~ —— 2026-10-07 经 `envQuery` 实测：`ExpireTime 2027-03-30 23:59:59`、`IsAutoRenew=true`、`Status NORMAL`、个人版（`baas_personal`）。备份仍保留，真要迁移时按 `RESTORE.md` 九步走
 - [待办·迁移时必做] 换环境后要改的硬编码（漏一个就整片功能失效，详见 RESTORE.md 第 7 节）：本小程序 `project.config.json` + `miniprogram/app.js` 的 envId；食光 App `js/api.js` 17/20/26 行 + `ShiguangFlutter/lib/data/api_client.dart` 38/42/46 行，并且 **publishable key 是 JWT、`aud` 绑死旧 envId，必须换发新 key**，否则食光客户端全量 401
